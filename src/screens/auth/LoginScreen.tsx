@@ -1,36 +1,94 @@
+import { LinearGradient } from "expo-linear-gradient";
 import {
-  View,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
+  View,
 } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
-import { colors } from "../../theme/colors";
 
 export default function LoginScreen({ navigation }: any) {
   return (
     <GradientBackground>
       <View style={styles.container}>
+        {/* 🔥 Tilt Neon */}
         <Text style={styles.title}>SIGN IN</Text>
 
-        <TextInput placeholder="Username" style={styles.input} />
+        <TextInput
+          placeholder="Username"
+          placeholderTextColor="#5E2206"
+          style={styles.input}
+        />
+
         <TextInput
           placeholder="Password"
+          placeholderTextColor="#5E2206"
           secureTextEntry
           style={styles.input}
         />
 
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Login</Text>
+        {/* 🔒 Remember / Forget */}
+        <View style={styles.rememberRow}>
+          <TouchableOpacity style={styles.rememberLeft} activeOpacity={0.7}>
+            <View style={styles.checkbox} />
+            <Text style={styles.rememberText}>Remember Me</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity activeOpacity={0.7}>
+            <Text style={styles.forgotText}>Forget Password</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Login */}
+        <TouchableOpacity activeOpacity={0.85}>
+          <LinearGradient
+            colors={["#FD691A", "#FFA160", "#FFD270"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
+        {/* Create account */}
         <TouchableOpacity
           onPress={() => navigation.navigate("Register")}
           style={styles.link}
         >
           <Text style={styles.linkText}>Create New Account</Text>
         </TouchableOpacity>
+
+        {/* 🔹 SOCIAL LOGIN */}
+        <View style={styles.socialContainer}>
+          <TouchableOpacity activeOpacity={0.85}>
+            <LinearGradient
+              colors={["#FFD36A", "#FF9F1C"]}
+              style={styles.socialButton}
+            >
+              <Text style={styles.socialIcon}>f</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity activeOpacity={0.85}>
+            <LinearGradient
+              colors={["#FFD36A", "#FF9F1C"]}
+              style={styles.socialButton}
+            >
+              <Text style={styles.socialIcon}>G</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity activeOpacity={0.85}>
+            <LinearGradient
+              colors={["#FFD36A", "#FF9F1C"]}
+              style={styles.socialButton}
+            >
+              <Text style={styles.socialIcon}></Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </GradientBackground>
   );
@@ -39,39 +97,106 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    padding: 32,
     justifyContent: "center",
   },
+
   title: {
-    fontSize: 28,
-    color: colors.textPrimary,
+    fontSize: 36,
+    fontFamily: "TiltNeon-Regular",
+    color: "#922D24",
     marginBottom: 30,
     borderBottomWidth: 2,
-    borderColor: colors.textPrimary,
-    width: 100,
+    borderColor: "#922D24",
+    width: 140,
+    letterSpacing: 2,
   },
+
   input: {
-    backgroundColor: colors.inputBg,
+    backgroundColor: "#FD8342",
     borderRadius: 20,
     padding: 14,
     marginBottom: 16,
+    fontFamily: "Inter-Regular",
+    fontSize: 16,
+    color: "white",
   },
+
+  /* 🔒 Remember / Forget */
+  rememberRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+
+  rememberLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    backgroundColor: "#A35A2A",
+  },
+
+  rememberText: {
+    fontFamily: "Inter-Regular",
+    color: "#5E2206",
+    fontSize: 14,
+  },
+
+  forgotText: {
+    fontFamily: "Inter-Regular",
+    color: "#5E2206",
+    fontSize: 14,
+  },
+
   button: {
-    backgroundColor: colors.secondary,
     padding: 16,
     borderRadius: 30,
     alignItems: "center",
     marginTop: 10,
   },
+
   buttonText: {
     color: "white",
     fontSize: 16,
+    fontFamily: "Inter-Medium",
   },
+
   link: {
-    marginTop: 20,
+    marginTop: 18,
     alignItems: "center",
   },
+
   linkText: {
-    color: colors.textSecondary,
+    color: "#5E2206",
+    fontFamily: "Inter-Regular",
+  },
+
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 14,
+    gap: 20,
+  },
+
+  socialButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  socialIcon: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#fff",
   },
 });

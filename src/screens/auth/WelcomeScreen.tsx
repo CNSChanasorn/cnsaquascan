@@ -1,56 +1,83 @@
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import GradientBackground from "../../components/GradientBackground";
-import { colors } from "../../theme/colors";
 
 export default function WelcomeScreen({ navigation }: any) {
   return (
     <GradientBackground>
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 28,
-            color: colors.textPrimary,
-            fontStyle: "italic",
-            marginBottom: 20,
-          }}
-        >
-          Welcome To
-        </Text>
+      <View style={styles.container}>
+        {/* Felipa */}
+        <Text style={styles.subtitle}>Welcome To</Text>
 
-        <Text
-          style={{
-            fontSize: 32,
-            fontWeight: "600",
-            color: colors.textPrimary,
-            marginBottom: 40,
-          }}
-        >
-          AquaScan
-        </Text>
+        {/* ✅ Cormorant Unicase */}
+        <Text style={styles.title}>AquaScan</Text>
 
         <Image
           source={require("../../../assets/images/icon.png")}
-          style={{ width: 120, height: 120, marginBottom: 40 }}
+          style={styles.image}
+          resizeMode="contain"
         />
 
         <TouchableOpacity
           onPress={() => navigation.navigate("Login")}
-          style={{
-            backgroundColor: colors.primary,
-            paddingHorizontal: 40,
-            paddingVertical: 14,
-            borderRadius: 30,
-          }}
+          activeOpacity={0.85}
         >
-          <Text style={{ color: "white", fontSize: 18 }}>→</Text>
+          <LinearGradient
+            colors={["#FFB163", "#FF9831", "#FF8000"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>→</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </GradientBackground>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  subtitle: {
+    fontSize: 48,
+    fontFamily: "Felipa",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+
+  title: {
+    fontSize: 52,
+    fontFamily: "CormorantUnicase-SemiBold", // 🔥 ใช้จริงแล้ว
+    letterSpacing: 2,
+    color: "#880B00",
+    textAlign: "center",
+  },
+
+  image: {
+    width: 200,
+    height: 200,
+    marginVertical: 40,
+  },
+
+  button: {
+    paddingHorizontal: 44,
+    paddingVertical: 16,
+    borderRadius: 40,
+  },
+
+  buttonText: {
+    color: "white",
+    fontSize: 20,
+  },
+});
