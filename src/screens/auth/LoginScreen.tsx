@@ -85,7 +85,7 @@ export default function LoginScreen({ navigation }: any) {
               colors={["#FFD36A", "#FF9F1C"]}
               style={styles.socialButton}
             >
-              <Text style={styles.socialIcon}></Text>
+              <Text style={styles.socialIcon}>iOS</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
