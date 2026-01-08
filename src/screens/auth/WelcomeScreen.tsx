@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 import { colors } from "../../theme/colors";
 
