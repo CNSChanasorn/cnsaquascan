@@ -51,14 +51,14 @@ const styles = StyleSheet.create({
 
   subtitle: {
     fontSize: 48,
-    fontFamily: "Felipa",
+    fontFamily: "Felipa-Regular",
     color: "#ffffff",
     marginBottom: 8,
   },
 
   title: {
     fontSize: 52,
-    fontFamily: "CormorantUnicase-SemiBold", // 🔥 ใช้จริงแล้ว
+    fontFamily: "Cormorant-SemiBold", // 🔥 ใช้จริงแล้ว
     letterSpacing: 2,
     color: "#880B00",
     textAlign: "center",
