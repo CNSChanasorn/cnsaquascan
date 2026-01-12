@@ -1,5 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -9,6 +11,50 @@ import {
 import GradientBackground from "../../components/GradientBackground";
 
 export default function LoginScreen({ navigation }: any) {
+  /* 🔐 State สำหรับ Login */
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  /* ✅ ฟังก์ชัน Login */
+  const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert("Error", "Please enter username and password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "https://your-backend-url.com/api/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        // ✅ Login สำเร็จ → ไปหน้า Collection
+        navigation.navigate("Collection");
+      } else {
+        Alert.alert("Login Failed", data.message || "Invalid credentials");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Cannot connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <GradientBackground>
       <View style={styles.container}>
@@ -19,6 +65,8 @@ export default function LoginScreen({ navigation }: any) {
           placeholder="Username"
           placeholderTextColor="#5E2206"
           style={styles.input}
+          value={username}
+          onChangeText={setUsername}
         />
 
         <TextInput
@@ -26,6 +74,8 @@ export default function LoginScreen({ navigation }: any) {
           placeholderTextColor="#5E2206"
           secureTextEntry
           style={styles.input}
+          value={password}
+          onChangeText={setPassword}
         />
 
         {/* 🔒 Remember / Forget */}
@@ -40,15 +90,17 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Login */}
-        <TouchableOpacity activeOpacity={0.85}>
+        {/* ✅ Login */}
+        <TouchableOpacity activeOpacity={0.85} onPress={handleLogin}>
           <LinearGradient
             colors={["#FD691A", "#FFA160", "#FFD270"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.button}
           >
-            <Text style={styles.buttonText}>Login</Text>
+            <Text style={styles.buttonText}>
+              {loading ? "Loading..." : "Login"}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -94,6 +146,7 @@ export default function LoginScreen({ navigation }: any) {
   );
 }
 
+/* 🎨 Styles (เหมือนเดิมทั้งหมด) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -122,7 +175,6 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  /* 🔒 Remember / Forget */
   rememberRow: {
     flexDirection: "row",
     justifyContent: "space-between",
