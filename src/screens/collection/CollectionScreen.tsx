@@ -1,5 +1,8 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -9,7 +12,36 @@ import {
   View,
 } from "react-native";
 
+type CollectionItem = {
+  id: string;
+  name: string;
+  size: string;
+  weight: string;
+  date: string;
+  time: string;
+  image: string;
+};
+
 export default function DataCollectionScreen() {
+  const [data, setData] = useState<CollectionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCollection();
+  }, []);
+
+  const fetchCollection = async () => {
+    try {
+      const res = await fetch("https://your-backend.com/api/collections");
+      const json = await res.json();
+      setData(json);
+    } catch (error) {
+      console.log("API error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <LinearGradient
       colors={["#FF8A3D", "#FFD1B0", "#FFF6EF"]}
@@ -23,8 +55,9 @@ export default function DataCollectionScreen() {
           resizeMode="contain"
         />
 
+        {/* 👤 Profile Icon (Google Icon) */}
         <View style={styles.profileCircle}>
-          <Text style={styles.profileIcon}>👤</Text>
+          <MaterialIcons name="person" size={24} color="#FD8342" />
         </View>
       </View>
 
@@ -35,35 +68,32 @@ export default function DataCollectionScreen() {
           placeholderTextColor="#FD8342"
           style={styles.searchInput}
         />
-        <Text style={styles.searchIcon}>🔍</Text>
+        <MaterialIcons name="search" size={22} color="#FD8342" />
       </View>
 
       {/* 📦 List */}
-      <ScrollView contentContainerStyle={styles.list}>
-        <DataCard
-          image={require("../../../assets/images/orange.png")}
-          id="001"
-          name="Mandarin"
-          size="20 CM"
-          weight="3 KG"
-          date="12/12/2025"
-          time="10:30 A.M."
-        />
-
-        <DataCard
-          image={require("../../../assets/images/tangerine.png")}
-          id="002"
-          name="Tangerine"
-          size="18 CM"
-          weight="5 KG"
-          date="12/12/2025"
-          time="10:30 A.M."
-        />
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator size="large" color="#FD8342" />
+      ) : (
+        <ScrollView contentContainerStyle={styles.list}>
+          {data.map((item) => (
+            <DataCard
+              key={item.id}
+              image={getImage(item.image)}
+              id={item.id}
+              name={item.name}
+              size={item.size}
+              weight={item.weight}
+              date={item.date}
+              time={item.time}
+            />
+          ))}
+        </ScrollView>
+      )}
 
       {/* ➕ Floating Button */}
       <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
-        <Text style={styles.fabText}>＋</Text>
+        <MaterialIcons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </LinearGradient>
   );
@@ -76,22 +106,31 @@ function DataCard({ image, id, name, size, weight, date, time }: any) {
       <Image source={image} style={styles.cardImage} />
 
       <View style={styles.cardInfo}>
-        {/* ✅ Grid 2 คอลัมน์ 3 แถว */}
         <View style={styles.cardGrid}>
           <Text style={styles.cardItem}>🍊 {id}</Text>
           <Text style={styles.cardItem}>🍊 {name}</Text>
-
           <Text style={styles.cardItem}>⭕ {size}</Text>
           <Text style={styles.cardItem}>⚖️ {weight}</Text>
-
           <Text style={styles.cardItem}>📅 {date}</Text>
           <Text style={styles.cardItem}>⏰ {time}</Text>
         </View>
       </View>
 
-      <Text style={styles.editIcon}>✏️</Text>
+      <MaterialIcons name="edit" size={18} color="#FD8342" />
     </View>
   );
+}
+
+/* 🔁 map image จาก backend */
+function getImage(type: string) {
+  switch (type) {
+    case "orange":
+      return require("../../../assets/images/orange.png");
+    case "tangerine":
+      return require("../../../assets/images/tangerine.png");
+    default:
+      return require("../../../assets/images/orange.png");
+  }
 }
 
 /* 🎨 Styles */
@@ -122,11 +161,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  profileIcon: {
-    fontSize: 20,
-  },
-
-  /* 🔍 Search */
   searchBox: {
     flexDirection: "row",
     backgroundColor: "#ffffff",
@@ -141,15 +175,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: "Inter-Regular",
-    color: "#FD8342",
-    padding: 0,
-    margin: 0,
-    borderWidth: 0,
-    backgroundColor: "transparent",
-  },
-
-  searchIcon: {
-    fontSize: 18,
     color: "#FD8342",
   },
 
@@ -178,21 +203,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  /* ✅ Grid layout */
   cardGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
 
   cardItem: {
-    width: "50%", // 2 คอลัมน์
+    width: "50%",
     fontFamily: "Inter-Regular",
     fontSize: 12,
     marginBottom: 4,
-  },
-
-  editIcon: {
-    fontSize: 18,
   },
 
   fab: {
@@ -206,10 +226,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
-  },
-
-  fabText: {
-    color: "#fff",
-    fontSize: 28,
   },
 });
