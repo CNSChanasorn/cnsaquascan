@@ -1,5 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,35 +13,60 @@ import {
   View,
 } from "react-native";
 
+import { db } from "../../firebase/firebase";
+
 type CollectionItem = {
+  docId: string; // ✅ Firestore document id
   id: string;
   name: string;
   size: string;
   weight: string;
   date: string;
   time: string;
-  image: string;
+  image?: string;
 };
 
-export default function DataCollectionScreen() {
+const DEFAULT_IMAGE = "https://via.placeholder.com/150";
+
+export default function CollectionScreen({ navigation }: any) {
   const [data, setData] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCollection();
-  }, []);
+    const q = query(
+      collection(db, "collections"),
+      orderBy("createdAt", "desc")
+    );
 
-  const fetchCollection = async () => {
-    try {
-      const res = await fetch("https://your-backend.com/api/collections");
-      const json = await res.json();
-      setData(json);
-    } catch (error) {
-      console.log("API error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: CollectionItem[] = snapshot.docs.map((doc) => {
+          const d: any = doc.data();
+
+          return {
+            docId: doc.id, // ✅ สำคัญสำหรับ edit
+            id: d.id || doc.id,
+            name: d.variety || d.name || "-",
+            size: d.size || "-",
+            weight: d.weight || "-",
+            date: d.date || "-",
+            time: d.time || "-",
+            image: d.image || DEFAULT_IMAGE,
+          };
+        });
+
+        setData(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.log("Firestore error:", error);
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
 
   return (
     <LinearGradient
@@ -55,7 +81,6 @@ export default function DataCollectionScreen() {
           resizeMode="contain"
         />
 
-        {/* 👤 Profile Icon (Google Icon) */}
         <View style={styles.profileCircle}>
           <MaterialIcons name="person" size={24} color="#FD8342" />
         </View>
@@ -78,21 +103,20 @@ export default function DataCollectionScreen() {
         <ScrollView contentContainerStyle={styles.list}>
           {data.map((item) => (
             <DataCard
-              key={item.id}
-              image={getImage(item.image)}
-              id={item.id}
-              name={item.name}
-              size={item.size}
-              weight={item.weight}
-              date={item.date}
-              time={item.time}
+              key={item.docId}
+              item={item}
+              navigation={navigation}
             />
           ))}
         </ScrollView>
       )}
 
       {/* ➕ Floating Button */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate("AddCollection")}
+      >
         <MaterialIcons name="add" size={28} color="#fff" />
       </TouchableOpacity>
     </LinearGradient>
@@ -100,58 +124,61 @@ export default function DataCollectionScreen() {
 }
 
 /* 🧩 Card Component */
-function DataCard({ image, id, name, size, weight, date, time }: any) {
+function DataCard({
+  item,
+  navigation,
+}: {
+  item: CollectionItem;
+  navigation: any;
+}) {
   return (
     <View style={styles.card}>
-      <Image source={image} style={styles.cardImage} />
+      <Image
+        source={{ uri: item.image || DEFAULT_IMAGE }}
+        style={styles.cardImage}
+      />
 
       <View style={styles.cardInfo}>
         <View style={styles.cardGrid}>
-          <Text style={styles.cardItem}>🍊 {id}</Text>
-          <Text style={styles.cardItem}>🍊 {name}</Text>
-          <Text style={styles.cardItem}>⭕ {size}</Text>
-          <Text style={styles.cardItem}>⚖️ {weight}</Text>
-          <Text style={styles.cardItem}>📅 {date}</Text>
-          <Text style={styles.cardItem}>⏰ {time}</Text>
+          <Text style={styles.cardItem}>🍊 {item.id}</Text>
+          <Text style={styles.cardItem}>🍊 {item.name}</Text>
+          <Text style={styles.cardItem}>⭕ {item.size}</Text>
+          <Text style={styles.cardItem}>⚖️ {item.weight}</Text>
+          <Text style={styles.cardItem}>📅 {item.date}</Text>
+          <Text style={styles.cardItem}>⏰ {item.time}</Text>
         </View>
       </View>
 
-      <MaterialIcons name="edit" size={18} color="#FD8342" />
+      {/* ✏️ Edit Button */}
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate("EditCollection", {
+            item,
+          })
+        }
+      >
+        <MaterialIcons name="edit" size={18} color="#FD8342" />
+      </TouchableOpacity>
     </View>
   );
 }
 
-/* 🔁 map image จาก backend */
-function getImage(type: string) {
-  switch (type) {
-    case "orange":
-      return require("../../../assets/images/orange.png");
-    case "tangerine":
-      return require("../../../assets/images/tangerine.png");
-    default:
-      return require("../../../assets/images/orange.png");
-  }
-}
-
-/* 🎨 Styles */
+/* 🎨 Styles (เดิมทั้งหมด) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 40,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-
   logoImage: {
     width: 40,
     height: 40,
   },
-
   profileCircle: {
     width: 44,
     height: 44,
@@ -160,7 +187,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   searchBox: {
     flexDirection: "row",
     backgroundColor: "#ffffff",
@@ -171,18 +197,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     height: 48,
   },
-
   searchInput: {
     flex: 1,
-    fontFamily: "Inter-Regular",
     color: "#FD8342",
   },
-
   list: {
     paddingHorizontal: 20,
     paddingBottom: 120,
   },
-
   card: {
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -191,30 +213,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: "center",
   },
-
   cardImage: {
     width: 100,
     height: 100,
     borderRadius: 12,
     marginRight: 12,
   },
-
   cardInfo: {
     flex: 1,
   },
-
   cardGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
-
   cardItem: {
     width: "50%",
-    fontFamily: "Inter-Regular",
     fontSize: 12,
     marginBottom: 4,
   },
-
   fab: {
     position: "absolute",
     right: 24,

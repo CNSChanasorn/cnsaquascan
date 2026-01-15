@@ -10,6 +10,14 @@ import {
 } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 
+// 🔥 Firebase
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase/firebase";
+
 export default function RegisterScreen({ navigation }: any) {
   /* 🔐 State */
   const [fullName, setFullName] = useState("");
@@ -19,7 +27,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ✅ Register API */
+  /* ✅ Firebase Register */
   const handleRegister = async () => {
     if (
       !fullName ||
@@ -40,36 +48,44 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://your-backend-url.com/api/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fullName,
-            username,
-            email,
-            password,
-          }),
-        }
+      // 🔐 Create user (Auth)
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
       );
 
-      const data = await response.json();
+      const user = userCredential.user;
 
-      if (data.success) {
-        Alert.alert("Success", "Account created successfully", [
-          {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ]);
-      } else {
-        Alert.alert("Register Failed", data.message || "Something went wrong");
+      // 🧾 Save extra profile (Firestore)
+      await setDoc(doc(db, "users", user.uid), {
+        fullName,
+        username,
+        email,
+        createdAt: new Date(),
+      });
+
+      // ❗ ออกจากระบบทันทีหลังสมัคร
+      await signOut(auth);
+
+      Alert.alert("Success", "Account created successfully", [
+        {
+          text: "OK",
+          onPress: () => navigation.replace("Login"),
+        },
+      ]);
+    } catch (error: any) {
+      let message = "Register failed";
+
+      if (error.code === "auth/email-already-in-use") {
+        message = "Email already in use";
+      } else if (error.code === "auth/invalid-email") {
+        message = "Invalid email";
+      } else if (error.code === "auth/weak-password") {
+        message = "Password should be at least 6 characters";
       }
-    } catch (error) {
-      Alert.alert("Error", "Cannot connect to server");
+
+      Alert.alert("Register Failed", message);
     } finally {
       setLoading(false);
     }
@@ -78,10 +94,8 @@ export default function RegisterScreen({ navigation }: any) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔥 Tilt Neon */}
         <Text style={styles.title}>REGISTER</Text>
 
-        {/* 🔥 Inter */}
         <TextInput
           placeholder="Full Name"
           placeholderTextColor="#5E2206"
@@ -102,6 +116,7 @@ export default function RegisterScreen({ navigation }: any) {
           style={styles.input}
           value={email}
           onChangeText={setEmail}
+          autoCapitalize="none"
         />
         <TextInput
           placeholder="Password"
@@ -120,7 +135,6 @@ export default function RegisterScreen({ navigation }: any) {
           onChangeText={setConfirmPassword}
         />
 
-        {/* ✅ Gradient Button */}
         <TouchableOpacity activeOpacity={0.85} onPress={handleRegister}>
           <LinearGradient
             colors={["#FD691A", "#FFA160", "#FFD270"]}
@@ -134,7 +148,6 @@ export default function RegisterScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* กลับไป Login */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.link}
@@ -146,14 +159,13 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-/* 🎨 Styles (เหมือนเดิมทั้งหมด) */
+/* 🎨 Styles (ไม่แตะเลย) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
     justifyContent: "center",
   },
-
   title: {
     fontSize: 36,
     fontFamily: "TiltNeon-Regular",
@@ -164,7 +176,6 @@ const styles = StyleSheet.create({
     width: 170,
     letterSpacing: 2,
   },
-
   input: {
     backgroundColor: "#FD8342",
     borderRadius: 20,
@@ -174,25 +185,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
-
   button: {
     padding: 16,
     borderRadius: 30,
     alignItems: "center",
     marginTop: 10,
   },
-
   buttonText: {
     color: "white",
     fontSize: 16,
     fontFamily: "Inter-Medium",
   },
-
   link: {
     marginTop: 18,
     alignItems: "center",
   },
-
   linkText: {
     color: "#5E2206",
     fontFamily: "Inter-Regular",

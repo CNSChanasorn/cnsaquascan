@@ -1,5 +1,5 @@
 import { NavigationContainer } from "@react-navigation/native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import AuthNavigator from "./src/navigation/AuthNavigator";
@@ -16,10 +16,20 @@ import {
 } from "@expo-google-fonts/inter";
 import { TiltNeon_400Regular } from "@expo-google-fonts/tilt-neon";
 
-export default function App() {
-  // 🔐 เริ่มต้น = ยังไม่ login
-  const [isLogin, setIsLogin] = useState(true);
+// 🔥 Firebase
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./src/firebase/firebase";
 
+export default function App() {
+  // 🔐 สถานะ login จาก Firebase
+  const [isLogin, setIsLogin] = useState(false);
+
+  // ✅ คุมการเข้าแอป (สำคัญ)
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // 🔤 โหลดฟอนต์
   const [fontsLoaded] = useFonts({
     "Cormorant-SemiBold": CormorantUnicase_600SemiBold,
     "Felipa-Regular": Felipa_400Regular,
@@ -28,7 +38,18 @@ export default function App() {
     "Inter-Medium": Inter_500Medium,
   });
 
-  if (!fontsLoaded) {
+  // ✅ ฟัง auth state (แค่รู้ว่ามี user หรือไม่)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLogin(!!user);
+      setCheckingAuth(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // ⏳ รอ font + auth
+  if (!fontsLoaded || checkingAuth) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -38,10 +59,12 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isLogin ? (
-        <MainTabNavigator />   // ✅ login แล้ว → เห็น Navbar
+      {isLogin && hasEnteredApp ? (
+        // ✅ ต้อง login + กดเข้าแอปแล้วเท่านั้น
+        <MainTabNavigator />
       ) : (
-        <AuthNavigator setIsLogin={setIsLogin} /> // 🔐 Welcome / Login / Register
+        // 🔐 เปิดแอป = Welcome เสมอ
+        <AuthNavigator setHasEnteredApp={setHasEnteredApp} />
       )}
     </NavigationContainer>
   );

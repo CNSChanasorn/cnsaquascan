@@ -2,7 +2,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Text, View } from "react-native";
 
-import CollectionScreen from "../screens/collection/CollectionScreen";
+// 🔽 ใช้ Stack ครอบ Collection แทน
+import CollectionStackNavigator from "./CollectionStackNavigator";
 
 const Tab = createBottomTabNavigator();
 
@@ -21,7 +22,7 @@ export default function MainTabNavigator() {
       screenOptions={{
         headerShown: false,
 
-        // 🟠 Navbar style
+        // 🟠 Navbar style (เหมือนเดิม)
         tabBarStyle: {
           height: 60,
           backgroundColor: "#FD8342",
@@ -44,16 +45,16 @@ export default function MainTabNavigator() {
         name="Home"
         component={EmptyScreen("Home")}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <MaterialIcons name="home" size={24} color={color} />
           ),
         }}
       />
 
-      {/* 📦 Data Collection */}
+      {/* 📦 Data Collection (แก้ตรงนี้อย่างเดียว) */}
       <Tab.Screen
         name="Collection"
-        component={CollectionScreen}
+        component={CollectionStackNavigator}
         options={{
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="inventory" size={24} color={color} />

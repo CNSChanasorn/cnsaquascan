@@ -9,10 +9,10 @@ import DataCollectionScreen from "../screens/collection/CollectionScreen";
 const Stack = createNativeStackNavigator();
 
 type Props = {
-  setIsLogin: (value: boolean) => void;
+  setHasEnteredApp: (value: boolean) => void;
 };
 
-export default function AuthNavigator({ setIsLogin }: Props) {
+export default function AuthNavigator({ setHasEnteredApp }: Props) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
@@ -21,14 +21,14 @@ export default function AuthNavigator({ setIsLogin }: Props) {
         {(props) => (
           <LoginScreen
             {...props}
-            setIsLogin={setIsLogin}
+            setHasEnteredApp={setHasEnteredApp}
           />
         )}
       </Stack.Screen>
 
       <Stack.Screen name="Register" component={RegisterScreen} />
 
-      {/* ✅ เพิ่มหน้า Data Collection */}
+      {/* เก็บไว้ได้ ไม่พัง */}
       <Stack.Screen
         name="Collection"
         component={DataCollectionScreen}

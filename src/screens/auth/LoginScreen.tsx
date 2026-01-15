@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import {
   Alert,
@@ -8,48 +9,45 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import GradientBackground from "../../components/GradientBackground";
 
-export default function LoginScreen({ navigation }: any) {
+import GradientBackground from "../../components/GradientBackground";
+import { auth } from "../../firebase/firebase";
+
+export default function LoginScreen({
+  navigation,
+  setHasEnteredApp, // ✅ เพิ่มเข้ามา
+}: any) {
   /* 🔐 State สำหรับ Login */
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(""); // ใช้เป็น email
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ✅ ฟังก์ชัน Login */
+  /* ✅ Firebase Login */
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert("Error", "Please enter username and password");
+      Alert.alert("Error", "Please enter email and password");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://your-backend-url.com/api/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username,
-            password,
-          }),
-        }
-      );
+      await signInWithEmailAndPassword(auth, username, password);
 
-      const data = await response.json();
+      // ✅ บอก App ว่าเข้าแอปแล้ว → Navbar จะโผล่
+      setHasEnteredApp(true);
+    } catch (error: any) {
+      let message = "Login failed";
 
-      if (data.success) {
-        // ✅ Login สำเร็จ → ไปหน้า Collection
-        navigation.navigate("Collection");
-      } else {
-        Alert.alert("Login Failed", data.message || "Invalid credentials");
+      if (error.code === "auth/user-not-found") {
+        message = "User not found";
+      } else if (error.code === "auth/wrong-password") {
+        message = "Wrong password";
+      } else if (error.code === "auth/invalid-email") {
+        message = "Invalid email";
       }
-    } catch (error) {
-      Alert.alert("Error", "Cannot connect to server");
+
+      Alert.alert("Login Failed", message);
     } finally {
       setLoading(false);
     }
@@ -62,11 +60,12 @@ export default function LoginScreen({ navigation }: any) {
         <Text style={styles.title}>SIGN IN</Text>
 
         <TextInput
-          placeholder="Username"
+          placeholder="Email"
           placeholderTextColor="#5E2206"
           style={styles.input}
           value={username}
           onChangeText={setUsername}
+          autoCapitalize="none"
         />
 
         <TextInput
@@ -146,14 +145,13 @@ export default function LoginScreen({ navigation }: any) {
   );
 }
 
-/* 🎨 Styles (เหมือนเดิมทั้งหมด) */
+/* 🎨 Styles (ไม่แตะเลย) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 32,
     justifyContent: "center",
   },
-
   title: {
     fontSize: 36,
     fontFamily: "TiltNeon-Regular",
@@ -164,7 +162,6 @@ const styles = StyleSheet.create({
     width: 140,
     letterSpacing: 2,
   },
-
   input: {
     backgroundColor: "#FD8342",
     borderRadius: 20,
@@ -174,7 +171,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
-
   rememberRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -182,62 +178,52 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 4,
   },
-
   rememberLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-
   checkbox: {
     width: 18,
     height: 18,
     borderRadius: 5,
     backgroundColor: "#A35A2A",
   },
-
   rememberText: {
     fontFamily: "Inter-Regular",
     color: "#5E2206",
     fontSize: 14,
   },
-
   forgotText: {
     fontFamily: "Inter-Regular",
     color: "#5E2206",
     fontSize: 14,
   },
-
   button: {
     padding: 16,
     borderRadius: 30,
     alignItems: "center",
     marginTop: 10,
   },
-
   buttonText: {
     color: "white",
     fontSize: 16,
     fontFamily: "Inter-Medium",
   },
-
   link: {
     marginTop: 18,
     alignItems: "center",
   },
-
   linkText: {
     color: "#5E2206",
     fontFamily: "Inter-Regular",
   },
-
   socialContainer: {
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 14,
     gap: 20,
   },
-
   socialButton: {
     width: 56,
     height: 56,
@@ -245,7 +231,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   socialIcon: {
     fontSize: 26,
     fontWeight: "700",
