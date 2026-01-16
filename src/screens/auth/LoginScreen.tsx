@@ -111,35 +111,6 @@ export default function LoginScreen({
           <Text style={styles.linkText}>Create New Account</Text>
         </TouchableOpacity>
 
-        {/* 🔹 SOCIAL LOGIN */}
-        <View style={styles.socialContainer}>
-          <TouchableOpacity activeOpacity={0.85}>
-            <LinearGradient
-              colors={["#FFD36A", "#FF9F1C"]}
-              style={styles.socialButton}
-            >
-              <Text style={styles.socialIcon}>f</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity activeOpacity={0.85}>
-            <LinearGradient
-              colors={["#FFD36A", "#FF9F1C"]}
-              style={styles.socialButton}
-            >
-              <Text style={styles.socialIcon}>G</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity activeOpacity={0.85}>
-            <LinearGradient
-              colors={["#FFD36A", "#FF9F1C"]}
-              style={styles.socialButton}
-            >
-              <Text style={styles.socialIcon}>iOS</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
       </View>
     </GradientBackground>
   );

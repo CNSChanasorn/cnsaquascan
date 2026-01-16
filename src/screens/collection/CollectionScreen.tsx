@@ -1,9 +1,17 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -41,12 +49,12 @@ export default function CollectionScreen({ navigation }: any) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const list: CollectionItem[] = snapshot.docs.map((doc) => {
-          const d: any = doc.data();
+        const list: CollectionItem[] = snapshot.docs.map((docSnap) => {
+          const d: any = docSnap.data();
 
           return {
-            docId: doc.id, // ✅ สำคัญสำหรับ edit
-            id: d.id || doc.id,
+            docId: docSnap.id, // ✅ ใช้ลบ
+            id: d.id || docSnap.id,
             name: d.variety || d.name || "-",
             size: d.size || "-",
             weight: d.weight || "-",
@@ -131,8 +139,44 @@ function DataCard({
   item: CollectionItem;
   navigation: any;
 }) {
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete",
+      "Are you sure you want to delete this item?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, "collections", item.docId));
+            } catch (err) {
+              console.log("DELETE ERROR:", err);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.card}>
+      {/* 🔝 Icons มุมขวาบน */}
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("EditCollection", { item })
+          }
+        >
+          <MaterialIcons name="edit" size={18} color="#FD8342" />
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={handleDelete} style={{ marginLeft: 10 }}>
+          <MaterialIcons name="delete" size={18} color="red" />
+        </TouchableOpacity>
+      </View>
+
       <Image
         source={{ uri: item.image || DEFAULT_IMAGE }}
         style={styles.cardImage}
@@ -148,22 +192,11 @@ function DataCard({
           <Text style={styles.cardItem}>⏰ {item.time}</Text>
         </View>
       </View>
-
-      {/* ✏️ Edit Button */}
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate("EditCollection", {
-            item,
-          })
-        }
-      >
-        <MaterialIcons name="edit" size={18} color="#FD8342" />
-      </TouchableOpacity>
     </View>
   );
 }
 
-/* 🎨 Styles (เดิมทั้งหมด) */
+/* 🎨 Styles (โครงสร้างเดิม + เพิ่มเล็กน้อย) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -212,6 +245,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 16,
     alignItems: "center",
+    position: "relative",
+  },
+  cardActions: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    flexDirection: "row",
+    zIndex: 10,
   },
   cardImage: {
     width: 100,

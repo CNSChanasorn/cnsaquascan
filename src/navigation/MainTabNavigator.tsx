@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Text, View } from "react-native";
 
 // 🔽 ใช้ Stack ครอบ Collection แทน
+import AnalysisScreen from "../screens/analysis/AnalysisScreen";
 import CollectionStackNavigator from "./CollectionStackNavigator";
 
 const Tab = createBottomTabNavigator();
@@ -65,7 +66,7 @@ export default function MainTabNavigator() {
       {/* 📈 Analysis */}
       <Tab.Screen
         name="Analysis"
-        component={EmptyScreen("Analysis")}
+        component={AnalysisScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="analytics" size={24} color={color} />

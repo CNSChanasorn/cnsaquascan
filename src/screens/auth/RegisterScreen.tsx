@@ -15,11 +15,14 @@ import {
   createUserWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import { auth, db } from "../../firebase/firebase";
 
 export default function RegisterScreen({ navigation }: any) {
-  /* 🔐 State */
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -27,7 +30,6 @@ export default function RegisterScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ✅ Firebase Register */
   const handleRegister = async () => {
     if (
       !fullName ||
@@ -48,35 +50,42 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       setLoading(true);
 
-      // 🔐 Create user (Auth)
+      // 🔐 Create Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
+        email.toLowerCase().trim(),
         password
       );
 
       const user = userCredential.user;
 
-      // 🧾 Save extra profile (Firestore)
+      // 🧾 Save profile to Firestore
       await setDoc(doc(db, "users", user.uid), {
-        fullName,
-        username,
-        email,
-        createdAt: new Date(),
+        fullName: fullName.trim(),
+        username: username.trim(),
+        email: email.toLowerCase().trim(),
+        createdAt: serverTimestamp(),
       });
 
-      // ❗ ออกจากระบบทันทีหลังสมัคร
+      // ❗ Logout หลังสมัครเสร็จ
       await signOut(auth);
 
-      Alert.alert("Success", "Account created successfully", [
-        {
-          text: "OK",
-          onPress: () => navigation.replace("Login"),
-        },
-      ]);
+      // ✅ แจ้ง success + เด้งไป Login
+      Alert.alert(
+        "Success",
+        "Account created successfully",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.replace("Login"),
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
-      let message = "Register failed";
+      console.log("REGISTER ERROR:", error);
 
+      let message = "Register failed";
       if (error.code === "auth/email-already-in-use") {
         message = "Email already in use";
       } else if (error.code === "auth/invalid-email") {
@@ -135,7 +144,11 @@ export default function RegisterScreen({ navigation }: any) {
           onChangeText={setConfirmPassword}
         />
 
-        <TouchableOpacity activeOpacity={0.85} onPress={handleRegister}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleRegister}
+          disabled={loading}
+        >
           <LinearGradient
             colors={["#FD691A", "#FFA160", "#FFD270"]}
             start={{ x: 0, y: 0 }}
@@ -159,7 +172,7 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-/* 🎨 Styles (ไม่แตะเลย) */
+/* 🎨 Styles (ไม่แตะ) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
