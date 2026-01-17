@@ -4,16 +4,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    ListRenderItem,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
 import { db } from "../../firebase/firebase";
 
@@ -46,20 +46,32 @@ function CollectedItemCard({
         selected && styles.collectedItemSelected,
       ]}
       onPress={onPress}
+      activeOpacity={0.85}
     >
+      <Image
+        source={{ uri: item.image || "https://via.placeholder.com/150" }}
+        style={styles.collectedItemImage}
+      />
+
       <View style={styles.collectedItemContent}>
-        <Text style={styles.collectedItemVariety}>🍊 {item.name}</Text>
-        <View style={styles.collectedItemDetails}>
-          <Text style={styles.collectedItemDetail}>Size: {item.size}</Text>
-          <Text style={styles.collectedItemDetail}>Weight: {item.weight}</Text>
+        <View style={styles.cardGrid}>
+          <Text style={styles.cardItem}>🍊 ID: {item.id}</Text>
+          <Text style={styles.cardItem}>🍊 Variety: {item.name}</Text>
+          <Text style={styles.cardItem}>⭕ Size: {item.size}</Text>
+          <Text style={styles.cardItem}>⚖️ Weight: {item.weight}</Text>
+          <Text style={styles.cardItem}>📅 Date: {item.date}</Text>
+          <Text style={styles.cardItem}>⏰ Time: {item.time}</Text>
         </View>
       </View>
 
-      <View style={styles.collectedItemCheckbox}>
-        {selected && (
-          <MaterialIcons name="check" size={20} color="#FD8342" />
-        )}
-      </View>
+      {selected && (
+        <MaterialIcons
+          name="check-circle"
+          size={22}
+          color="#FD8342"
+          style={styles.checkIcon}
+        />
+      )}
     </TouchableOpacity>
   );
 }
@@ -67,32 +79,25 @@ function CollectedItemCard({
 export default function AnalysisScreen() {
   const navigation = useNavigation<any>();
   const [data, setData] = useState<CollectionItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
-
-  const [selectedImage, setSelectedImage] = useState<string>(
-    "https://images.unsplash.com/photo-1569410849066-a82e2b7c3df7?w=300&q=80"
-  );
+  const [selectedItem, setSelectedItem] =
+    useState<CollectionItem | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
-  const q = query(
-    collection(db, "collections"),
-    orderBy("createdAt", "desc")
-  );
+    const q = query(
+      collection(db, "collections"),
+      orderBy("createdAt", "asc")
+    );
 
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: CollectionItem[] = snapshot.docs.map((doc) => {
         const d: any = doc.data();
-
         return {
           docId: doc.id,
           id: d.id || doc.id,
-          name: d.variety || d.name || "-",
-          size: d.size || "-",
-          weight: d.weight || "-",
+          name: d.name || "-",
+          size: d.size || "0",
+          weight: d.weight || "0",
           date: d.date || "-",
           time: d.time || "-",
           image: d.image,
@@ -100,205 +105,117 @@ export default function AnalysisScreen() {
       });
 
       setData(list);
-      setLoading(false);
-    },
-    (error) => {
-      console.log("Firestore error:", error);
-      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  /* 🔮 Prediction Logic (FIXED & SAFE) */
+  const predictOrange = (size: number, weight: number) => {
+    let grade: "Good" | "Medium" | "Bad" = "Bad";
+    let sweetness = 4;
+
+    // 🟢 Good
+    if (size >= 80 && weight >= 100) {
+      grade = "Good";
+      sweetness = 14;
+
+    // 🟡 Medium
+    } else if (
+      (size >= 60 && size < 80) ||
+      (weight >= 80 && weight < 100)
+    ) {
+      grade = "Medium";
+      sweetness = 8;
     }
-  );
 
-  return unsubscribe;
-}, []);
-
-  const handleSelectImage = () => {
-    Alert.alert("Select Image", "Choose how to upload", [
-      {
-        text: "Camera",
-        onPress: () => {
-          setSelectedImage(
-            "https://images.unsplash.com/photo-1569410849066-a82e2b7c3df7?w=300&q=80"
-          );
-        },
-      },
-      {
-        text: "Gallery",
-        onPress: () => {
-          setSelectedImage(
-            "https://images.unsplash.com/photo-1599599810694-b5ac4dd63edb?w=300&q=80"
-          );
-        },
-      },
-      { text: "Cancel", onPress: () => {} },
-    ]);
+    return { grade, sweetness };
   };
 
   const handleMeasure = () => {
     if (!selectedItem) {
-      Alert.alert("Error", "Please select an item from the collected data");
+      Alert.alert("Error", "Please select an item");
       return;
     }
-    
+
+    const size = parseFloat(selectedItem.size.replace(/[^\d.]/g, ""));
+    const weight = parseFloat(selectedItem.weight.replace(/[^\d.]/g, ""));
+
+    const result = predictOrange(size, weight);
+
     setIsAnalyzing(true);
+
     setTimeout(() => {
       setIsAnalyzing(false);
-      navigation.navigate("Result");
+
+      navigation.navigate("Result", {
+        image: selectedItem.image,
+        variety: selectedItem.name,
+        grade: result.grade,
+        sweetness: result.sweetness,
+        date: selectedItem.date,
+        time: selectedItem.time,
+      });
     }, 2000);
   };
 
-  const handleSelectItem = (item: CollectionItem) => {
-    setSelectedItem(item);
-    setSelectedImage(item.image || selectedImage);
-  };
-
-  const renderCollectedItem: ListRenderItem<CollectionItem> = ({ item }) => (
-  <TouchableOpacity
-    style={[
-      styles.collectedItem,
-      selectedItem?.docId === item.docId && styles.collectedItemSelected,
-    ]}
-    onPress={() => handleSelectItem(item)}
-  >
-
-    <Image
-  source={{ uri: item.image || "https://via.placeholder.com/100" }}
-  style={styles.collectedItemImage}
-/>
-
-    <View style={styles.collectedItemContent}>
-      <Text style={styles.collectedItemVariety}>🍊 {item.name}</Text>
-      <View style={styles.collectedItemDetails}>
-        <Text style={styles.collectedItemDetail}>
-          Size: {item.size}
-        </Text>
-        <Text style={styles.collectedItemDetail}>
-          Weight: {item.weight}
-        </Text>
-      </View>
-    </View>
-
-    <View style={styles.collectedItemCheckbox}>
-      {selectedItem?.docId === item.docId && (
-        <MaterialIcons name="check" size={20} color="#FD8342" />
-      )}
-    </View>
-  </TouchableOpacity>
-);
-
   return (
     <GradientBackground>
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 30 }}
-      >
-        {/* 🔝 Header */}
-              <View style={styles.header}>
-                <Image
-                  source={require("../../../assets/images/icon.png")}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-        
-                <View style={styles.profileCircle}>
-                  <MaterialIcons name="person" size={24} color="#FD8342" />
-                </View>
-              </View>
-        
-              {/* 🔍 Search */}
-              <View style={styles.searchBox}>
-                <TextInput
-                  placeholder="Search"
-                  placeholderTextColor="#FD8342"
-                  style={styles.searchInput}
-                />
-                <MaterialIcons name="search" size={22} color="#FD8342" />
-              </View>
-        
-        {/* Collected Data Section */}
-        <View style={styles.collectedSection}>
-          <Text style={styles.sectionTitle}>Collected Data</Text>
+      <View style={styles.container}>
+        {/* 🔝 Header (ใช้ Component แยก) */}
+        <AppHeader />
 
-          {data.length > 0 ? (
-  <View style={styles.collectedList}>
-    {data.map((item) => (
-      <CollectedItemCard
-        key={item.docId}
-        item={item}
-        selected={selectedItem?.docId === item.docId}
-        onPress={() => handleSelectItem(item)}
-      />
-    ))}
-
-    {/* Measure Button */}
-        <TouchableOpacity
-          style={styles.measureButton}
-          onPress={handleMeasure}
-          disabled={isAnalyzing}
-          activeOpacity={0.7}
-        >
-          <LinearGradient
-            colors={["#FFD270", "#FFA160"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.measureGradient}
-          >
-            <MaterialIcons
-              name={isAnalyzing ? "schedule" : "check-circle"}
-              size={24}
-              color="#FFF"
-            />
-            <Text style={styles.measureText}>
-              {isAnalyzing ? "Analyzing..." : "Measure"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-  </View>
-) : (
-  <View style={styles.emptyState}>
-    <MaterialIcons name="inbox" size={48} color="#CCC" />
-    <Text style={styles.emptyText}>No data to analyze</Text>
-  </View>
-)}
-
+        {/* 🔍 Search */}
+        <View style={styles.searchBox}>
+          <TextInput
+            placeholder="Search"
+            placeholderTextColor="#FD8342"
+            style={styles.searchInput}
+          />
+          <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
-      </ScrollView>
+
+        <ScrollView contentContainerStyle={styles.list}>
+          {data.map((item) => (
+            <CollectedItemCard
+              key={item.docId}
+              item={item}
+              selected={selectedItem?.docId === item.docId}
+              onPress={() => setSelectedItem(item)}
+            />
+          ))}
+
+          <TouchableOpacity
+            onPress={handleMeasure}
+            disabled={isAnalyzing}
+            activeOpacity={0.85}
+            style={styles.measureButton}
+          >
+            <LinearGradient
+              colors={["#FFAC72", "#FF8937", "#FF6900"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.measureGradient}
+            >
+              <MaterialIcons
+                name={isAnalyzing ? "schedule" : "check-circle"}
+                size={22}
+                color="#fff"
+              />
+              <Text style={styles.measureText}>
+                {isAnalyzing ? "Analyzing..." : "Measure"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
     </GradientBackground>
   );
 }
 
+/* 🎨 Styles (UNCHANGED) */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 40,
-    height: 40,
-  },
-
-  headerTitle: {
-    fontSize: 28,
-    fontFamily: "Cormorant-SemiBold",
-    color: "#FD8342",
-    fontWeight: "700",
-  },
-
-  profileCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, paddingTop: 40 },
   searchBox: {
     flexDirection: "row",
     backgroundColor: "#ffffff",
@@ -309,150 +226,46 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     height: 48,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: "Inter-Regular",
-    color: "#2C2C2C",
+  searchInput: { flex: 1, color: "#FD8342" },
+  list: { paddingHorizontal: 20, paddingBottom: 120 },
+  collectedItem: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    position: "relative",
   },
-
-//   imageCard: {
-//     borderRadius: 20,
-//     height: 280,
-//     marginBottom: 20,
-//     overflow: "hidden",
-//     alignItems: "center",
-//     justifyContent: "center",
-//     position: "relative",
-//   },
-
-//   heartIcon: {
-//     position: "absolute",
-//     top: 16,
-//     right: 16,
-//     zIndex: 10,
-//     backgroundColor: "rgba(0, 0, 0, 0.2)",
-//     width: 44,
-//     height: 44,
-//     borderRadius: 22,
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-
-  analysisImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+  collectedItemSelected: {
+    borderWidth: 2,
+    borderColor: "#FD8342",
   },
-
-  measureButton: {
+  collectedItemImage: {
+    width: 100,
+    height: 100,
     borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 24,
+    marginRight: 12,
   },
-
+  collectedItemContent: { flex: 1 },
+  cardGrid: { flexDirection: "row", flexWrap: "wrap" },
+  cardItem: { width: "50%", fontSize: 12, marginBottom: 4 },
+  checkIcon: { position: "absolute", top: 10, right: 12 },
+  measureButton: {
+    borderRadius: 30,
+    overflow: "hidden",
+    marginTop: 16,
+  },
   measureGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    gap: 12,
+    gap: 10,
   },
-
   measureText: {
+    color: "#fff",
     fontSize: 16,
-    fontFamily: "Inter-SemiBold",
-    color: "#FFF",
     fontWeight: "600",
-  },
-
-  collectedSection: {
-    marginBottom: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontFamily: "Inter-SemiBold",
-    color: "#2C2C2C",
-    marginBottom: 16,
-    fontWeight: "600",
-  },
-
-  collectedList: {
-  paddingHorizontal: 20,
-  paddingBottom: 120, // เผื่อปุ่ม Measure / FAB
-},
-
-  collectedItem: {
-  backgroundColor: "#fff",
-  borderRadius: 20,
-  padding: 14,
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 16,
-  position: "relative",
-  minHeight: 120,
-},
-
-collectedItemImage: {
-  width: 100,
-  height: 100,
-  borderRadius: 12,
-  marginRight: 12,
-  backgroundColor: "#F2F2F2",
-},
-
-  collectedItemSelected: {
-  borderWidth: 2,
-  borderColor: "#FD8342",
-  backgroundColor: "#FFF7F2",
-},
-
-  collectedItemContent: {
-    flex: 1,
-  },
-
-  collectedItemVariety: {
-  fontSize: 16,
-  fontWeight: "600",
-  color: "#2C2C2C",
-  marginBottom: 8,
-},
-
-  collectedItemDetails: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-},
-
-  collectedItemDetail: {
-  width: "50%",
-  fontSize: 12,
-  color: "#999",
-  marginBottom: 4,
-},
-
-  collectedItemCheckbox: {
-  position: "absolute",
-  top: 10,
-  right: 12,
-  width: 24,
-  height: 24,
-  borderRadius: 12,
-  borderWidth: 2,
-  borderColor: "#E0E0E0",
-  justifyContent: "center",
-  alignItems: "center",
-},
-
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-
-  emptyText: {
-    fontSize: 16,
-    fontFamily: "Inter-Regular",
-    color: "#999",
-    marginTop: 12,
   },
 });

@@ -2,13 +2,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import GradientBackground from "../../components/GradientBackground";
 import { db } from "../../firebase/firebase";
 
 const DEFAULT_IMAGE =
@@ -21,7 +23,7 @@ export default function AddCollectionScreen({ navigation }: any) {
   const [weight, setWeight] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // ✅ เพิ่ม
+  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleAdd = async () => {
@@ -35,12 +37,12 @@ export default function AddCollectionScreen({ navigation }: any) {
 
       await addDoc(collection(db, "collections"), {
         id,
-        name: variety,                 // ✅ ตรงกับหน้า Collection
+        name: variety,
         size,
         weight,
         date,
         time,
-        image: imageUrl || DEFAULT_IMAGE, // ✅ ใช้ URL
+        image: imageUrl || DEFAULT_IMAGE,
         createdAt: serverTimestamp(),
       });
 
@@ -55,77 +57,75 @@ export default function AddCollectionScreen({ navigation }: any) {
   };
 
   return (
-    <LinearGradient
-      colors={["#FF8A3D", "#FFD1B0", "#FFF6EF"]}
-      style={styles.container}
-    >
-      <Text style={styles.title}>Add New Data</Text>
+    <GradientBackground>
+      <View style={styles.container}>
+        <Text style={styles.title}>Add New Data</Text>
 
-      <TextInput
-        placeholder="ID"
-        style={styles.input}
-        value={id}
-        onChangeText={setId}
-      />
+        <TextInput
+          placeholder="ID"
+          style={styles.input}
+          value={id}
+          onChangeText={setId}
+        />
 
-      <TextInput
-        placeholder="Variety"
-        style={styles.input}
-        value={variety}
-        onChangeText={setVariety}
-      />
+        <TextInput
+          placeholder="Variety"
+          style={styles.input}
+          value={variety}
+          onChangeText={setVariety}
+        />
 
-      <TextInput
-        placeholder="Circle line"
-        style={styles.input}
-        value={size}
-        onChangeText={setSize}
-      />
+        <TextInput
+          placeholder="Size"
+          style={styles.input}
+          value={size}
+          onChangeText={setSize}
+        />
 
-      <TextInput
-        placeholder="Weight (kg)"
-        style={styles.input}
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="numeric"
-      />
+        <TextInput
+          placeholder="Weight (kg)"
+          style={styles.input}
+          value={weight}
+          onChangeText={setWeight}
+          keyboardType="numeric"
+        />
 
-      <TextInput
-        placeholder="Date"
-        style={styles.input}
-        value={date}
-        onChangeText={setDate}
-      />
+        <TextInput
+          placeholder="Date"
+          style={styles.input}
+          value={date}
+          onChangeText={setDate}
+        />
 
-      <TextInput
-        placeholder="Time"
-        style={styles.input}
-        value={time}
-        onChangeText={setTime}
-      />
+        <TextInput
+          placeholder="Time"
+          style={styles.input}
+          value={time}
+          onChangeText={setTime}
+        />
 
-      {/* 🖼 Image URL */}
-      <TextInput
-        placeholder="Image URL (optional)"
-        style={styles.input}
-        value={imageUrl}
-        onChangeText={setImageUrl}
-        autoCapitalize="none"
-      />
+        <TextInput
+          placeholder="Image URL (optional)"
+          style={styles.input}
+          value={imageUrl}
+          onChangeText={setImageUrl}
+          autoCapitalize="none"
+        />
 
-      <TouchableOpacity onPress={handleAdd} activeOpacity={0.85}>
-        <LinearGradient
-          colors={["#FFA160", "#FFD270", "#B6D53A"]}
+        <TouchableOpacity onPress={handleAdd} activeOpacity={0.85}>
+          <LinearGradient
+            colors={["#FFAC72", "#FF8937", "#FF6900"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Saving..." : "Add"}
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </LinearGradient>
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Saving..." : "Add"}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </GradientBackground>
   );
 }
 
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 20,
-    color: "#fff",
+    color: "#922D24", // ให้ธีมตรงกัน
     textAlign: "center",
   },
   input: {

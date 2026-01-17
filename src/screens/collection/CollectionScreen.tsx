@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import {
   collection,
   deleteDoc,
@@ -11,7 +10,6 @@ import {
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,10 +19,12 @@ import {
   View,
 } from "react-native";
 
+import AppHeader from "../../components/AppHeader"; // ✅ ใช้ Header component
+import GradientBackground from "../../components/GradientBackground";
 import { db } from "../../firebase/firebase";
 
 type CollectionItem = {
-  docId: string; // ✅ Firestore document id
+  docId: string;
   id: string;
   name: string;
   size: string;
@@ -43,7 +43,7 @@ export default function CollectionScreen({ navigation }: any) {
   useEffect(() => {
     const q = query(
       collection(db, "collections"),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "asc")
     );
 
     const unsubscribe = onSnapshot(
@@ -53,7 +53,7 @@ export default function CollectionScreen({ navigation }: any) {
           const d: any = docSnap.data();
 
           return {
-            docId: docSnap.id, // ✅ ใช้ลบ
+            docId: docSnap.id,
             id: d.id || docSnap.id,
             name: d.variety || d.name || "-",
             size: d.size || "-",
@@ -67,67 +67,55 @@ export default function CollectionScreen({ navigation }: any) {
         setData(list);
         setLoading(false);
       },
-      (error) => {
-        console.log("Firestore error:", error);
-        setLoading(false);
-      }
+      () => setLoading(false)
     );
 
     return unsubscribe;
   }, []);
 
   return (
-    <LinearGradient
-      colors={["#FF8A3D", "#FFD1B0", "#FFF6EF"]}
-      style={styles.container}
-    >
-      {/* 🔝 Header */}
-      <View style={styles.header}>
-        <Image
-          source={require("../../../assets/images/icon.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
+    <GradientBackground>
+      <View style={styles.container}>
 
-        <View style={styles.profileCircle}>
-          <MaterialIcons name="person" size={24} color="#FD8342" />
+        {/* 🔝 Header (แยกเป็น component) */}
+        <AppHeader />
+
+        {/* 🔍 Search */}
+        <View style={styles.searchBox}>
+          <TextInput
+            placeholder="Search"
+            placeholderTextColor="#FD8342"
+            style={styles.searchInput}
+          />
+          <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
+
+        {/* 📦 List */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#FD8342" />
+        ) : (
+          <ScrollView contentContainerStyle={styles.list}>
+            {data.map((item) => (
+              <DataCard
+                key={item.docId}
+                item={item}
+                navigation={navigation}
+              />
+            ))}
+          </ScrollView>
+        )}
+
+        {/* ➕ Floating Button */}
+        <TouchableOpacity
+          style={styles.fab}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("AddCollection")}
+        >
+          <MaterialIcons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+
       </View>
-
-      {/* 🔍 Search */}
-      <View style={styles.searchBox}>
-        <TextInput
-          placeholder="Search"
-          placeholderTextColor="#FD8342"
-          style={styles.searchInput}
-        />
-        <MaterialIcons name="search" size={22} color="#FD8342" />
-      </View>
-
-      {/* 📦 List */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#FD8342" />
-      ) : (
-        <ScrollView contentContainerStyle={styles.list}>
-          {data.map((item) => (
-            <DataCard
-              key={item.docId}
-              item={item}
-              navigation={navigation}
-            />
-          ))}
-        </ScrollView>
-      )}
-
-      {/* ➕ Floating Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => navigation.navigate("AddCollection")}
-      >
-        <MaterialIcons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
-    </LinearGradient>
+    </GradientBackground>
   );
 }
 
@@ -139,25 +127,12 @@ function DataCard({
   item: CollectionItem;
   navigation: any;
 }) {
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete",
-      "Are you sure you want to delete this item?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, "collections", item.docId));
-            } catch (err) {
-              console.log("DELETE ERROR:", err);
-            }
-          },
-        },
-      ]
-    );
+  const handleDelete = async () => {
+    try {
+      await deleteDoc(doc(db, "collections", item.docId));
+    } catch (err) {
+      console.log("DELETE ERROR:", err);
+    }
   };
 
   return (
@@ -196,29 +171,11 @@ function DataCard({
   );
 }
 
-/* 🎨 Styles (โครงสร้างเดิม + เพิ่มเล็กน้อย) */
+/* 🎨 Styles (โครงสร้างเดิม ไม่พัง) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 40,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 40,
-    height: 40,
-  },
-  profileCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
   },
   searchBox: {
     flexDirection: "row",

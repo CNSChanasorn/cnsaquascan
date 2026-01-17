@@ -4,6 +4,8 @@ import { Text, View } from "react-native";
 
 // 🔽 ใช้ Stack ครอบ Collection แทน
 import AnalysisScreen from "../screens/analysis/AnalysisScreen";
+import HistoryScreen from "../screens/history/HistoryScreen";
+import ResultScreen from "../screens/result/ResultScreen";
 import CollectionStackNavigator from "./CollectionStackNavigator";
 
 const Tab = createBottomTabNavigator();
@@ -77,7 +79,7 @@ export default function MainTabNavigator() {
       {/* 🍊 Result */}
       <Tab.Screen
         name="Result"
-        component={EmptyScreen("Result")}
+        component={ResultScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="assessment" size={24} color={color} />
@@ -88,7 +90,7 @@ export default function MainTabNavigator() {
       {/* ⏱️ History */}
       <Tab.Screen
         name="History"
-        component={EmptyScreen("History")}
+        component={HistoryScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="history" size={24} color={color} />

@@ -2,13 +2,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
+import GradientBackground from "../../components/GradientBackground";
 import { db } from "../../firebase/firebase";
 
 export default function EditCollectionScreen({ route, navigation }: any) {
@@ -53,41 +55,46 @@ export default function EditCollectionScreen({ route, navigation }: any) {
   };
 
   return (
-    <LinearGradient
-      colors={["#FF8A3D", "#FFD1B0", "#FFF6EF"]}
-      style={styles.container}
-    >
-      <Text style={styles.title}>Edit Data</Text>
+    <GradientBackground>
+      <View style={styles.container}>
+        <Text style={styles.title}>Edit Data</Text>
 
-      <TextInput style={styles.input} value={id} onChangeText={setId} />
-      <TextInput style={styles.input} value={variety} onChangeText={setVariety} />
-      <TextInput style={styles.input} value={size} onChangeText={setSize} />
-      <TextInput
-        style={styles.input}
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="numeric"
-      />
-      <TextInput style={styles.input} value={date} onChangeText={setDate} />
-      <TextInput style={styles.input} value={time} onChangeText={setTime} />
-      <TextInput
-        style={styles.input}
-        value={imageUrl}
-        onChangeText={setImageUrl}
-        placeholder="Image URL"
-      />
+        <TextInput style={styles.input} value={id} onChangeText={setId} />
+        <TextInput
+          style={styles.input}
+          value={variety}
+          onChangeText={setVariety}
+        />
+        <TextInput style={styles.input} value={size} onChangeText={setSize} />
+        <TextInput
+          style={styles.input}
+          value={weight}
+          onChangeText={setWeight}
+          keyboardType="numeric"
+        />
+        <TextInput style={styles.input} value={date} onChangeText={setDate} />
+        <TextInput style={styles.input} value={time} onChangeText={setTime} />
+        <TextInput
+          style={styles.input}
+          value={imageUrl}
+          onChangeText={setImageUrl}
+          placeholder="Image URL"
+        />
 
-      <TouchableOpacity onPress={handleUpdate} activeOpacity={0.85}>
-        <LinearGradient
-          colors={["#FDBA3A", "#B6D53A"]}
-          style={styles.button}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Saving..." : "Save"}
-          </Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </LinearGradient>
+        <TouchableOpacity onPress={handleUpdate} activeOpacity={0.85}>
+          <LinearGradient
+            colors={["#FFAC72", "#FF8937", "#FF6900"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Saving..." : "Save"}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    </GradientBackground>
   );
 }
 
@@ -101,7 +108,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 20,
-    color: "#fff",
+    color: "#922D24", // ให้เข้าธีมเดียวกับหน้าอื่น
     textAlign: "center",
   },
   input: {

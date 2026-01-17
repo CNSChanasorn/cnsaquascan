@@ -1,5 +1,4 @@
-import { TouchableOpacity, Text } from "react-native";
-import { colors } from "../theme/colors";
+import { Text, TouchableOpacity } from "react-native";
 
 export default function Button({
   title,
@@ -12,7 +11,7 @@ export default function Button({
     <TouchableOpacity
       onPress={onPress}
       style={{
-        backgroundColor: colors.primary,
+        backgroundColor: "#FD8342",
         padding: 16,
         borderRadius: 12,
         alignItems: "center",
