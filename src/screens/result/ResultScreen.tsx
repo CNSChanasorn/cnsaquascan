@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, getDocs } from "firebase/firestore";
 import {
   Alert,
   Image,
@@ -17,6 +17,7 @@ export default function ResultScreen() {
   const route = useRoute<any>();
 
   const {
+    id,
     image,
     variety = "-",
     grade = "-",
@@ -28,21 +29,37 @@ export default function ResultScreen() {
   /* 💾 Save to History */
   const handleSave = async () => {
     try {
+      console.log("🔥 SAVE PRESSED");
       const now = new Date();
 
+      // --- 🟢 ส่วนที่เพิ่มใหม่: สร้าง ID 001 ---
+      let finalId = id; // ถ้ามี id ส่งมา (จากการสแกน) ให้ใช้ตัวนั้น
+
+      if (!finalId) {
+        // ถ้าไม่มี id ให้สร้างใหม่ โดยการนับจำนวน document ใน history
+        const historyCollection = collection(db, "history");
+        const snapshot = await getDocs(historyCollection);
+        const count = snapshot.size; // นับจำนวนที่มีอยู่
+
+        // แปลงเลขเป็น format "001", "002" (padZero)
+        finalId = String(count + 1).padStart(3, "0");
+      }
+
       await addDoc(collection(db, "history"), {
+        id: finalId, // ✅ ใช้ ID ที่เราสร้าง
         name: variety,
         grade: grade.toLowerCase(),
         sweetness: `${sweetness}%`,
         date: now.toLocaleDateString("th-TH"),
         time: now.toLocaleTimeString("th-TH"),
         image: image,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
       });
 
       Alert.alert("Success", "Saved to history");
       navigation.navigate("History");
     } catch (error) {
+      console.log("❌ SAVE ERROR:", error);
       Alert.alert("Error", "Cannot save data");
     }
   };
@@ -50,13 +67,11 @@ export default function ResultScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-
         {/* 🔝 Header */}
         <AppHeader />
 
         {/* 🔽 Content */}
         <View style={styles.contentContainer}>
-
           {/* 🖼 Image */}
           <View style={styles.imageCard}>
             <Image
@@ -105,7 +120,6 @@ export default function ResultScreen() {
               <Text style={styles.cancelText}>❌ Cancel</Text>
             </TouchableOpacity>
           </View>
-
         </View>
       </View>
     </GradientBackground>

@@ -1,22 +1,23 @@
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import {
-    collection,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import AppHeader from "../../components/AppHeader";
@@ -25,6 +26,7 @@ import { db } from "../../firebase/firebase";
 
 type HistoryItem = {
   docId: string;
+  id: string;
   name: string;
   grade: "good" | "medium" | "bad";
   sweetness: string;
@@ -45,6 +47,7 @@ const gradeText = (grade: HistoryItem["grade"]) => {
 export default function HistoryScreen() {
   const [data, setData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const q = query(collection(db, "history"), orderBy("createdAt", "asc"));
@@ -55,6 +58,7 @@ export default function HistoryScreen() {
 
         return {
           docId: docSnap.id,
+          id: d.id ?? `ID-${docSnap.id.slice(0, 5)}`,
           name: d.name ?? "-",
           grade: d.grade ?? "medium",
           sweetness: d.sweetness ?? "-",
@@ -74,7 +78,6 @@ export default function HistoryScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-
         {/* 🔝 Header (ใช้ AppHeader) */}
         <AppHeader />
 
@@ -94,7 +97,11 @@ export default function HistoryScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {data.map((item) => (
-              <HistoryCard key={item.docId} item={item} navigator={navigator} />
+              <HistoryCard
+                key={item.docId}
+                item={item}
+                navigation={navigation}
+              />
             ))}
           </ScrollView>
         )}
@@ -106,10 +113,10 @@ export default function HistoryScreen() {
 /* 🧩 Card */
 function HistoryCard({
   item,
-  navigator,
+  navigation,
 }: {
   item: HistoryItem;
-  navigator: any;
+  navigation: any;
 }) {
   const handleDelete = async (docId: string) => {
     try {
@@ -123,7 +130,7 @@ function HistoryCard({
     <View style={styles.card}>
       <View style={styles.cardActions}>
         <TouchableOpacity
-          onPress={() => navigator.navigator("EditHistory", { item })}
+          onPress={() => navigation.navigate("EditHistory", { item })}
         >
           <MaterialIcons name="edit" size={18} color="#FD8342" />
         </TouchableOpacity>
@@ -143,13 +150,10 @@ function HistoryCard({
 
       <View style={styles.cardInfo}>
         <View style={styles.cardGrid}>
+          <Text style={styles.cardItem}>🍊 {item.id}</Text>
           <Text style={styles.cardItem}>🍊 {item.name}</Text>
-          <Text style={styles.cardItem}>
-            🏷️ Grade: {gradeText(item.grade)}
-          </Text>
-          <Text style={styles.cardItem}>
-            🍬 Sweetness: {item.sweetness}
-          </Text>
+          <Text style={styles.cardItem}>🏷️ Grade: {gradeText(item.grade)}</Text>
+          <Text style={styles.cardItem}>🍬 Sweetness: {item.sweetness}</Text>
           <Text style={styles.cardItem}>📅 {item.date}</Text>
           <Text style={styles.cardItem}>⏰ {item.time}</Text>
         </View>

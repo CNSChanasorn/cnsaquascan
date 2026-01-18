@@ -19,20 +19,14 @@ export default function AuthNavigator({ setHasEnteredApp }: Props) {
 
       <Stack.Screen name="Login">
         {(props) => (
-          <LoginScreen
-            {...props}
-            setHasEnteredApp={setHasEnteredApp}
-          />
+          <LoginScreen {...props} setHasEnteredApp={setHasEnteredApp} />
         )}
       </Stack.Screen>
 
       <Stack.Screen name="Register" component={RegisterScreen} />
 
       {/* เก็บไว้ได้ ไม่พัง */}
-      <Stack.Screen
-        name="Collection"
-        component={DataCollectionScreen}
-      />
+      <Stack.Screen name="Collection" component={DataCollectionScreen} />
     </Stack.Navigator>
   );
 }

@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -10,16 +11,12 @@ import {
 } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 
+// 📸 Image Picker
+import * as ImagePicker from "expo-image-picker";
+
 // 🔥 Firebase
-import {
-  createUserWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import {
-  doc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase/firebase";
 
 export default function RegisterScreen({ navigation }: any) {
@@ -28,16 +25,30 @@ export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /* 📸 เลือกรูป */
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert("Permission denied");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setAvatar(result.assets[0].uri);
+    }
+  };
+
   const handleRegister = async () => {
-    if (
-      !fullName ||
-      !username ||
-      !email ||
-      !password ||
-      !confirmPassword
-    ) {
+    if (!fullName || !username || !email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
@@ -54,7 +65,7 @@ export default function RegisterScreen({ navigation }: any) {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email.toLowerCase().trim(),
-        password
+        password,
       );
 
       const user = userCredential.user;
@@ -64,13 +75,13 @@ export default function RegisterScreen({ navigation }: any) {
         fullName: fullName.trim(),
         username: username.trim(),
         email: email.toLowerCase().trim(),
+        avatar: avatar || "",
         createdAt: serverTimestamp(),
       });
 
       // ❗ Logout หลังสมัครเสร็จ
       await signOut(auth);
 
-      // ✅ แจ้ง success + เด้งไป Login
       Alert.alert(
         "Success",
         "Account created successfully",
@@ -80,7 +91,7 @@ export default function RegisterScreen({ navigation }: any) {
             onPress: () => navigation.replace("Login"),
           },
         ],
-        { cancelable: false }
+        { cancelable: false },
       );
     } catch (error: any) {
       console.log("REGISTER ERROR:", error);
@@ -104,6 +115,17 @@ export default function RegisterScreen({ navigation }: any) {
     <GradientBackground>
       <View style={styles.container}>
         <Text style={styles.title}>REGISTER</Text>
+
+        {/* 🖼 Avatar */}
+        <TouchableOpacity style={styles.avatarBox} onPress={pickImage}>
+          <Image
+            source={{
+              uri: avatar || "https://via.placeholder.com/150",
+            }}
+            style={styles.avatar}
+          />
+          <Text style={styles.avatarText}>Tap to choose photo</Text>
+        </TouchableOpacity>
 
         <TextInput
           placeholder="Full Name"
@@ -172,7 +194,7 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-/* 🎨 Styles (ไม่แตะ) */
+/* 🎨 Styles (โครงสร้างเดิม + เพิ่ม avatar) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -188,6 +210,20 @@ const styles = StyleSheet.create({
     borderColor: "#922D24",
     width: 170,
     letterSpacing: 2,
+  },
+  avatarBox: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#eee",
+  },
+  avatarText: {
+    marginTop: 8,
+    color: "#5E2206",
   },
   input: {
     backgroundColor: "#FD8342",

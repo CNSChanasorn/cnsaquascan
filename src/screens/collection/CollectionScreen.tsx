@@ -41,10 +41,7 @@ export default function CollectionScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, "collections"),
-      orderBy("createdAt", "asc")
-    );
+    const q = query(collection(db, "collections"), orderBy("createdAt", "asc"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -67,7 +64,7 @@ export default function CollectionScreen({ navigation }: any) {
         setData(list);
         setLoading(false);
       },
-      () => setLoading(false)
+      () => setLoading(false),
     );
 
     return unsubscribe;
@@ -76,7 +73,6 @@ export default function CollectionScreen({ navigation }: any) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-
         {/* 🔝 Header (แยกเป็น component) */}
         <AppHeader />
 
@@ -96,11 +92,7 @@ export default function CollectionScreen({ navigation }: any) {
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {data.map((item) => (
-              <DataCard
-                key={item.docId}
-                item={item}
-                navigation={navigation}
-              />
+              <DataCard key={item.docId} item={item} navigation={navigation} />
             ))}
           </ScrollView>
         )}
@@ -113,7 +105,6 @@ export default function CollectionScreen({ navigation }: any) {
         >
           <MaterialIcons name="add" size={28} color="#fff" />
         </TouchableOpacity>
-
       </View>
     </GradientBackground>
   );
@@ -140,9 +131,7 @@ function DataCard({
       {/* 🔝 Icons มุมขวาบน */}
       <View style={styles.cardActions}>
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("EditCollection", { item })
-          }
+          onPress={() => navigation.navigate("EditCollection", { item })}
         >
           <MaterialIcons name="edit" size={18} color="#FD8342" />
         </TouchableOpacity>
