@@ -49,6 +49,9 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation<any>();
 
+  // 🔍 Search state
+  const [searchText, setSearchText] = useState("");
+
   useEffect(() => {
     const q = query(collection(db, "history"), orderBy("createdAt", "asc"));
 
@@ -75,33 +78,42 @@ export default function HistoryScreen() {
     return unsubscribe;
   }, []);
 
+  // 🔎 Filter logic
+  const filteredData = data.filter((item) => {
+    const keyword = searchText.toLowerCase();
+
+    return (
+      item.id.toLowerCase().includes(keyword) ||
+      item.name.toLowerCase().includes(keyword) ||
+      gradeText(item.grade).toLowerCase().includes(keyword) ||
+      item.sweetness.toLowerCase().includes(keyword) ||
+      item.date.toLowerCase().includes(keyword) ||
+      item.time.toLowerCase().includes(keyword)
+    );
+  });
+
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔝 Header (ใช้ AppHeader) */}
         <AppHeader />
 
-        {/* 🔍 Search */}
         <View style={styles.searchBox}>
           <TextInput
             placeholder="Search"
             placeholderTextColor="#FD8342"
             style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
           />
           <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
 
-        {/* 📜 List */}
         {loading ? (
           <ActivityIndicator size="large" color="#FD8342" />
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {data.map((item) => (
-              <HistoryCard
-                key={item.docId}
-                item={item}
-                navigation={navigation}
-              />
+            {filteredData.map((item) => (
+              <HistoryCard key={item.docId} item={item} />
             ))}
           </ScrollView>
         )}
@@ -111,13 +123,7 @@ export default function HistoryScreen() {
 }
 
 /* 🧩 Card */
-function HistoryCard({
-  item,
-  navigation,
-}: {
-  item: HistoryItem;
-  navigation: any;
-}) {
+function HistoryCard({ item }: { item: HistoryItem }) {
   const handleDelete = async (docId: string) => {
     try {
       await deleteDoc(doc(db, "history", docId));
@@ -129,16 +135,8 @@ function HistoryCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardActions}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("EditHistory", { item })}
-        >
-          <MaterialIcons name="edit" size={18} color="#FD8342" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => handleDelete(item.docId)}
-          style={{ marginLeft: 10 }}
-        >
+        {/* ❌ เอา Edit ออก เหลือแค่ Delete */}
+        <TouchableOpacity onPress={() => handleDelete(item.docId)}>
           <MaterialIcons name="delete" size={18} color="red" />
         </TouchableOpacity>
       </View>
@@ -167,24 +165,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 40,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 40,
-    height: 40,
-  },
-  profileCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
   },
   searchBox: {
     flexDirection: "row",

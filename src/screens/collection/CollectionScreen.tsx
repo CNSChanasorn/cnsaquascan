@@ -19,7 +19,7 @@ import {
   View,
 } from "react-native";
 
-import AppHeader from "../../components/AppHeader"; // ✅ ใช้ Header component
+import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
 import { db } from "../../firebase/firebase";
 
@@ -39,6 +39,9 @@ const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 export default function CollectionScreen({ navigation }: any) {
   const [data, setData] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 🔍 Search state
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     const q = query(collection(db, "collections"), orderBy("createdAt", "asc"));
@@ -70,10 +73,24 @@ export default function CollectionScreen({ navigation }: any) {
     return unsubscribe;
   }, []);
 
+  // 🔎 Filtered data (ไม่กระทบ data เดิม)
+  const filteredData = data.filter((item) => {
+    const keyword = searchText.toLowerCase();
+
+    return (
+      item.id.toLowerCase().includes(keyword) ||
+      item.name.toLowerCase().includes(keyword) ||
+      item.size.toLowerCase().includes(keyword) ||
+      item.weight.toLowerCase().includes(keyword) ||
+      item.date.toLowerCase().includes(keyword) ||
+      item.time.toLowerCase().includes(keyword)
+    );
+  });
+
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔝 Header (แยกเป็น component) */}
+        {/* 🔝 Header */}
         <AppHeader />
 
         {/* 🔍 Search */}
@@ -82,6 +99,8 @@ export default function CollectionScreen({ navigation }: any) {
             placeholder="Search"
             placeholderTextColor="#FD8342"
             style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
           />
           <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
@@ -91,7 +110,7 @@ export default function CollectionScreen({ navigation }: any) {
           <ActivityIndicator size="large" color="#FD8342" />
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {data.map((item) => (
+            {filteredData.map((item) => (
               <DataCard key={item.docId} item={item} navigation={navigation} />
             ))}
           </ScrollView>
@@ -160,7 +179,7 @@ function DataCard({
   );
 }
 
-/* 🎨 Styles (โครงสร้างเดิม ไม่พัง) */
+/* 🎨 Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -41,10 +41,7 @@ function CollectedItemCard({
 }: CollectedItemCardProps) {
   return (
     <TouchableOpacity
-      style={[
-        styles.collectedItem,
-        selected && styles.collectedItemSelected,
-      ]}
+      style={[styles.collectedItem, selected && styles.collectedItemSelected]}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -79,15 +76,14 @@ function CollectedItemCard({
 export default function AnalysisScreen() {
   const navigation = useNavigation<any>();
   const [data, setData] = useState<CollectionItem[]>([]);
-  const [selectedItem, setSelectedItem] =
-    useState<CollectionItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // 🔍 Search state
+  const [searchText, setSearchText] = useState("");
+
   useEffect(() => {
-    const q = query(
-      collection(db, "collections"),
-      orderBy("createdAt", "asc")
-    );
+    const q = query(collection(db, "collections"), orderBy("createdAt", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: CollectionItem[] = snapshot.docs.map((doc) => {
@@ -110,21 +106,29 @@ export default function AnalysisScreen() {
     return unsubscribe;
   }, []);
 
-  /* 🔮 Prediction Logic (FIXED & SAFE) */
+  // 🔎 Filter logic (ไม่กระทบ data เดิม)
+  const filteredData = data.filter((item) => {
+    const keyword = searchText.toLowerCase();
+
+    return (
+      item.id.toLowerCase().includes(keyword) ||
+      item.name.toLowerCase().includes(keyword) ||
+      item.size.toLowerCase().includes(keyword) ||
+      item.weight.toLowerCase().includes(keyword) ||
+      item.date.toLowerCase().includes(keyword) ||
+      item.time.toLowerCase().includes(keyword)
+    );
+  });
+
+  /* 🔮 Prediction Logic (SAFE) */
   const predictOrange = (size: number, weight: number) => {
     let grade: "Good" | "Medium" | "Bad" = "Bad";
     let sweetness = 4;
 
-    // 🟢 Good
     if (size >= 80 && weight >= 100) {
       grade = "Good";
       sweetness = 14;
-
-    // 🟡 Medium
-    } else if (
-      (size >= 60 && size < 80) ||
-      (weight >= 80 && weight < 100)
-    ) {
+    } else if ((size >= 60 && size < 80) || (weight >= 80 && weight < 100)) {
       grade = "Medium";
       sweetness = 8;
     }
@@ -162,7 +166,7 @@ export default function AnalysisScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔝 Header (ใช้ Component แยก) */}
+        {/* 🔝 Header */}
         <AppHeader />
 
         {/* 🔍 Search */}
@@ -171,12 +175,14 @@ export default function AnalysisScreen() {
             placeholder="Search"
             placeholderTextColor="#FD8342"
             style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
           />
           <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
 
         <ScrollView contentContainerStyle={styles.list}>
-          {data.map((item) => (
+          {filteredData.map((item) => (
             <CollectedItemCard
               key={item.docId}
               item={item}
