@@ -3,12 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDaEUABVsjBhPqrv-4m2zjhq7ov8GSOsZU",
-  authDomain: "app-orange-cdaa1.firebaseapp.com",
-  projectId: "app-orange-cdaa1",
-  storageBucket: "app-orange-cdaa1.firebasestorage.app",
-  messagingSenderId: "898632091613",
-  appId: "1:898632091613:web:404825d79920be53a5d834",
+  apiKey: "AIzaSyDCuBQOodnzBXXsYZk47qNo5RJ5_Np4ksI",
+  authDomain: "cnsaquascan.firebaseapp.com",
+  projectId: "cnsaquascan",
+  storageBucket: "cnsaquascan.firebasestorage.app",
+  messagingSenderId: "242111393690",
+  appId: "1:242111393690:web:c0623f8734d55dbc0d5423",
+  measurementId: "G-RLNEVPNSHK",
 };
 
 const app = initializeApp(firebaseConfig);

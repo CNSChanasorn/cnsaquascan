@@ -16,8 +16,9 @@ import * as ImagePicker from "expo-image-picker";
 
 // 🔥 Firebase
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth, db } from "../../firebase/firebase";
+import { auth } from "../../firebase/firebase";
+import { userRepository } from "../../firebase/repositories/userRepository";
+import { saveImageLocally } from "../../firebase/storage";
 
 export default function RegisterScreen({ navigation }: any) {
   const [fullName, setFullName] = useState("");
@@ -25,6 +26,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -61,23 +63,55 @@ export default function RegisterScreen({ navigation }: any) {
     try {
       setLoading(true);
 
+      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedUsername = username.trim();
+
+      const existingByEmail =
+        await userRepository.getUserByEmail(normalizedEmail);
+      if (existingByEmail) {
+        Alert.alert("Register Failed", "Email already in use");
+        return;
+      }
+
+      const existingByUsername =
+        await userRepository.getUserByUsername(normalizedUsername);
+      if (existingByUsername) {
+        Alert.alert("Register Failed", "Username already in use");
+        return;
+      }
+
       // 🔐 Create Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email.toLowerCase().trim(),
+        normalizedEmail,
         password,
       );
 
       const user = userCredential.user;
 
-      // 🧾 Save profile to Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        fullName: fullName.trim(),
-        username: username.trim(),
-        email: email.toLowerCase().trim(),
-        avatar: avatar || "",
-        createdAt: serverTimestamp(),
-      });
+      // 🧾 Save profile to SQLite (avatar saved locally)
+      let avatarPath = "";
+      if (avatar) {
+        avatarPath = await saveImageLocally(avatar, `avatar_${user.uid}.jpg`);
+      }
+
+      try {
+        await userRepository.createUser(
+          user.uid,
+          normalizedUsername,
+          fullName.trim(),
+          normalizedEmail,
+          phone.trim(),
+          avatarPath,
+        );
+      } catch (dbError) {
+        try {
+          await user.delete();
+        } catch (cleanupError) {
+          console.log("Auth cleanup failed after DB error:", cleanupError);
+        }
+        throw dbError;
+      }
 
       // ❗ Logout หลังสมัครเสร็จ
       await signOut(auth);
@@ -97,12 +131,21 @@ export default function RegisterScreen({ navigation }: any) {
       console.log("REGISTER ERROR:", error);
 
       let message = "Register failed";
+      const errorMessage = String(error?.message ?? "");
       if (error.code === "auth/email-already-in-use") {
         message = "Email already in use";
       } else if (error.code === "auth/invalid-email") {
         message = "Invalid email";
       } else if (error.code === "auth/weak-password") {
         message = "Password should be at least 6 characters";
+      } else if (
+        errorMessage.includes("UNIQUE constraint failed: Users.email")
+      ) {
+        message = "Email already in use";
+      } else if (
+        errorMessage.includes("UNIQUE constraint failed: Users.username")
+      ) {
+        message = "Username already in use";
       }
 
       Alert.alert("Register Failed", message);
@@ -140,6 +183,14 @@ export default function RegisterScreen({ navigation }: any) {
           style={styles.input}
           value={username}
           onChangeText={setUsername}
+        />
+        <TextInput
+          placeholder="Phone"
+          placeholderTextColor="#5E2206"
+          style={styles.input}
+          value={phone}
+          onChangeText={setPhone}
+          autoCapitalize="none"
         />
         <TextInput
           placeholder="Email"

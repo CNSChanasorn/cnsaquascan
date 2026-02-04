@@ -1,16 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useIsFocused } from "@react-navigation/native";
+import * as Sharing from "expo-sharing";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -19,19 +13,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import ViewShot from "react-native-view-shot";
 
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { db } from "../../firebase/firebase";
+import { analysisRepository } from "../../firebase/repositories/analysisRepository";
 
 type HistoryItem = {
-  docId: string;
+  resultId: string;
   id: string;
   name: string;
-  grade: "good" | "medium" | "bad";
+  size: string;
+  weight: string;
+  grade: string;
   sweetness: string;
   date: string;
   time: string;
+  status?: string;
   image?: string;
 };
 
@@ -39,44 +37,58 @@ const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 
 /* 🔁 แปลงค่าเกรด */
 const gradeText = (grade: HistoryItem["grade"]) => {
-  if (grade === "good") return "Good";
-  if (grade === "medium") return "Medium";
-  return "Bad";
+  const g = grade?.toLowerCase?.() || "";
+  if (g === "good") return "Good";
+  if (g === "medium") return "Medium";
+  if (g === "bad") return "Bad";
+  return grade || "-";
 };
 
 export default function HistoryScreen() {
   const [data, setData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const q = query(collection(db, "history"), orderBy("createdAt", "asc"));
+    const load = async () => {
+      try {
+        void analysisRepository.syncPendingAnalysis();
+        const rows: any[] = await analysisRepository.getAllAnalysisResults();
+        const list: HistoryItem[] = rows.map((row) => {
+          const analyzedAt = row.analyzed_at
+            ? new Date(row.analyzed_at)
+            : new Date();
+          return {
+            resultId: row.result_id,
+            id: row.orange_id,
+            name: row.variety || "-",
+            size: String(row.circle_line ?? "-") || "-",
+            weight: String(row.weight ?? "-") || "-",
+            grade: row.grade || "-",
+            sweetness: `${row.brix_value ?? "-"}`,
+            date: analyzedAt.toLocaleDateString("th-TH"),
+            time: analyzedAt.toLocaleTimeString("th-TH"),
+            status: row.status || "pending",
+            image: row.image_uri || DEFAULT_IMAGE,
+          };
+        });
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: HistoryItem[] = snapshot.docs.map((docSnap) => {
-        const d: any = docSnap.data();
+        setData(list);
+      } catch (err) {
+        console.log("LOAD HISTORY ERROR:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        return {
-          docId: docSnap.id,
-          id: d.id ?? `ID-${docSnap.id.slice(0, 5)}`,
-          name: d.name ?? "-",
-          grade: d.grade ?? "medium",
-          sweetness: d.sweetness ?? "-",
-          date: d.date ?? "-",
-          time: d.time ?? "-",
-          image: d.image ?? DEFAULT_IMAGE,
-        };
-      });
-
-      setData(list);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
+    if (isFocused) {
+      setLoading(true);
+      load();
+    }
+  }, [isFocused]);
 
   // 🔎 Filter logic
   const filteredData = data.filter((item) => {
@@ -85,10 +97,13 @@ export default function HistoryScreen() {
     return (
       item.id.toLowerCase().includes(keyword) ||
       item.name.toLowerCase().includes(keyword) ||
+      item.size.toLowerCase().includes(keyword) ||
+      item.weight.toLowerCase().includes(keyword) ||
       gradeText(item.grade).toLowerCase().includes(keyword) ||
       item.sweetness.toLowerCase().includes(keyword) ||
       item.date.toLowerCase().includes(keyword) ||
-      item.time.toLowerCase().includes(keyword)
+      item.time.toLowerCase().includes(keyword) ||
+      (item.status || "").toLowerCase().includes(keyword)
     );
   });
 
@@ -113,7 +128,7 @@ export default function HistoryScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {filteredData.map((item) => (
-              <HistoryCard key={item.docId} item={item} />
+              <HistoryCard key={item.resultId} item={item} />
             ))}
           </ScrollView>
         )}
@@ -124,39 +139,93 @@ export default function HistoryScreen() {
 
 /* 🧩 Card */
 function HistoryCard({ item }: { item: HistoryItem }) {
-  const handleDelete = async (docId: string) => {
+  const viewShotRef = useRef<ViewShot>(null);
+  const statusValue = (item.status || "pending").toLowerCase();
+  const statusLabel = statusValue === "synced" ? "Synced" : "Pending";
+  const statusColor = statusValue === "synced" ? "#4CAF50" : "#FF9800";
+
+  const handleSave = async () => {
     try {
-      await deleteDoc(doc(db, "history", docId));
+      if (viewShotRef.current) {
+        const uri = await viewShotRef.current.capture?.();
+        if (uri) {
+          const isAvailable = await Sharing.isAvailableAsync();
+          if (isAvailable) {
+            await Sharing.shareAsync(uri, {
+              mimeType: "image/png",
+              dialogTitle: "Save or Share Image",
+            });
+          } else {
+            Alert.alert("Error", "Sharing is not available on this device");
+          }
+        }
+      }
     } catch (err) {
-      console.log("DELETE ERROR:", err);
+      console.log("SAVE ERROR:", err);
+      Alert.alert("Error", "Failed to save image");
     }
   };
 
+  const handleDelete = async (resultId: string) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this record?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await analysisRepository.deleteAnalysis(resultId);
+            } catch (err) {
+              console.log("DELETE ERROR:", err);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
-    <View style={styles.card}>
-      <View style={styles.cardActions}>
-        {/* ❌ เอา Edit ออก เหลือแค่ Delete */}
-        <TouchableOpacity onPress={() => handleDelete(item.docId)}>
-          <MaterialIcons name="delete" size={18} color="red" />
-        </TouchableOpacity>
-      </View>
+    <ViewShot ref={viewShotRef} options={{ format: "png", quality: 1.0 }}>
+      <View style={styles.card}>
+        <View style={styles.cardActions}>
+          <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
+            <MaterialIcons name="save" size={18} color="#4CAF50" />
+          </TouchableOpacity>
 
-      <Image
-        source={{ uri: item.image || DEFAULT_IMAGE }}
-        style={styles.cardImage}
-      />
+          <TouchableOpacity onPress={() => handleDelete(item.resultId)}>
+            <MaterialIcons name="delete" size={18} color="red" />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.cardInfo}>
-        <View style={styles.cardGrid}>
-          <Text style={styles.cardItem}>🍊 {item.id}</Text>
-          <Text style={styles.cardItem}>🍊 {item.name}</Text>
-          <Text style={styles.cardItem}>🏷️ Grade: {gradeText(item.grade)}</Text>
-          <Text style={styles.cardItem}>🍬 Sweetness: {item.sweetness}</Text>
-          <Text style={styles.cardItem}>📅 {item.date}</Text>
-          <Text style={styles.cardItem}>⏰ {item.time}</Text>
+        <Image
+          source={{ uri: item.image || DEFAULT_IMAGE }}
+          style={styles.cardImage}
+        />
+
+        <View style={styles.cardInfo}>
+          <View style={styles.cardGrid}>
+            <Text style={styles.cardItem}>🍊 ID: {item.id}</Text>
+            <Text style={styles.cardItem}>🍊 {item.name}</Text>
+            <Text style={styles.cardItem}>⭕ Size: {item.size}</Text>
+            <Text style={styles.cardItem}>⚖️ Weight: {item.weight}</Text>
+            <Text style={styles.cardItem}>
+              🏷️ Grade: {gradeText(item.grade)}
+            </Text>
+            <Text style={styles.cardItem}>🍬 Sweetness: {item.sweetness}</Text>
+            <Text style={styles.cardItem}>📅 {item.date}</Text>
+            <Text style={styles.cardItem}>⏰ {item.time}</Text>
+            <Text
+              style={[styles.cardItem, { color: statusColor, width: "100%" }]}
+            >
+              🔄 {statusLabel}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
+    </ViewShot>
   );
 }
 

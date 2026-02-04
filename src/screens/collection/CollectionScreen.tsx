@@ -1,15 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-} from "firebase/firestore";
+import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,16 +15,17 @@ import {
 
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { db } from "../../firebase/firebase";
+import { orangeRepository } from "../../firebase/repositories/orangeRepository";
 
 type CollectionItem = {
-  docId: string;
+  orangeId: string;
   id: string;
   name: string;
   size: string;
   weight: string;
   date: string;
   time: string;
+  status?: string;
   image?: string;
 };
 
@@ -39,39 +34,47 @@ const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 export default function CollectionScreen({ navigation }: any) {
   const [data, setData] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const q = query(collection(db, "collections"), orderBy("createdAt", "asc"));
+    const load = async () => {
+      try {
+        await orangeRepository.syncPendingOranges();
+        const rows: any[] = await orangeRepository.getAllOranges();
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const list: CollectionItem[] = snapshot.docs.map((docSnap) => {
-          const d: any = docSnap.data();
-
+        const list: CollectionItem[] = rows.map((row) => {
+          const createdAt = row.created_at
+            ? new Date(row.created_at)
+            : new Date();
           return {
-            docId: docSnap.id,
-            id: d.id || docSnap.id,
-            name: d.variety || d.name || "-",
-            size: d.size || "-",
-            weight: d.weight || "-",
-            date: d.date || "-",
-            time: d.time || "-",
-            image: d.image || DEFAULT_IMAGE,
+            orangeId: row.orange_id,
+            id: row.orange_id,
+            name: row.variety || "-",
+            size: String(row.circle_line ?? "-") || "-",
+            weight: String(row.weight ?? "-") || "-",
+            date: createdAt.toLocaleDateString("th-TH"),
+            time: createdAt.toLocaleTimeString("th-TH"),
+            status: row.status || "pending",
+            image: row.image_uri || DEFAULT_IMAGE,
           };
         });
 
         setData(list);
+      } catch (err) {
+        console.log("LOAD COLLECTION ERROR:", err);
+      } finally {
         setLoading(false);
-      },
-      () => setLoading(false),
-    );
+      }
+    };
 
-    return unsubscribe;
-  }, []);
+    if (isFocused) {
+      setLoading(true);
+      load();
+    }
+  }, [isFocused]);
 
   // 🔎 Filtered data (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
@@ -83,7 +86,8 @@ export default function CollectionScreen({ navigation }: any) {
       item.size.toLowerCase().includes(keyword) ||
       item.weight.toLowerCase().includes(keyword) ||
       item.date.toLowerCase().includes(keyword) ||
-      item.time.toLowerCase().includes(keyword)
+      item.time.toLowerCase().includes(keyword) ||
+      (item.status || "").toLowerCase().includes(keyword)
     );
   });
 
@@ -111,7 +115,11 @@ export default function CollectionScreen({ navigation }: any) {
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {filteredData.map((item) => (
-              <DataCard key={item.docId} item={item} navigation={navigation} />
+              <DataCard
+                key={item.orangeId}
+                item={item}
+                navigation={navigation}
+              />
             ))}
           </ScrollView>
         )}
@@ -137,12 +145,29 @@ function DataCard({
   item: CollectionItem;
   navigation: any;
 }) {
+  const statusValue = (item.status || "pending").toLowerCase();
+  const statusLabel = statusValue === "synced" ? "Synced" : "Pending";
+  const statusColor = statusValue === "synced" ? "#4CAF50" : "#FF9800";
+
   const handleDelete = async () => {
-    try {
-      await deleteDoc(doc(db, "collections", item.docId));
-    } catch (err) {
-      console.log("DELETE ERROR:", err);
-    }
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this item?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await orangeRepository.deleteOrange(item.orangeId);
+            } catch (err) {
+              console.log("DELETE ERROR:", err);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -167,12 +192,17 @@ function DataCard({
 
       <View style={styles.cardInfo}>
         <View style={styles.cardGrid}>
-          <Text style={styles.cardItem}>🍊 {item.id}</Text>
+          <Text style={styles.cardItem}>🍊 ID: {item.id}</Text>
           <Text style={styles.cardItem}>🍊 {item.name}</Text>
-          <Text style={styles.cardItem}>⭕ {item.size}</Text>
-          <Text style={styles.cardItem}>⚖️ {item.weight}</Text>
+          <Text style={styles.cardItem}>⭕ Size: {item.size}</Text>
+          <Text style={styles.cardItem}>⚖️ Weight: {item.weight}</Text>
           <Text style={styles.cardItem}>📅 {item.date}</Text>
           <Text style={styles.cardItem}>⏰ {item.time}</Text>
+          <Text
+            style={[styles.cardItem, { color: statusColor, width: "100%" }]}
+          >
+            🔄 {statusLabel}
+          </Text>
         </View>
       </View>
     </View>

@@ -1,5 +1,4 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { addDoc, collection, getDocs } from "firebase/firestore";
 import {
   Alert,
   Image,
@@ -10,51 +9,77 @@ import {
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { db } from "../../firebase/firebase";
+import { auth } from "../../firebase/firebase";
+import { analysisRepository } from "../../firebase/repositories/analysisRepository";
+import { orangeRepository } from "../../firebase/repositories/orangeRepository";
 
 export default function ResultScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
 
   const {
-    id,
+    orangeId,
     image,
     variety = "-",
     grade = "-",
     sweetness = 0,
     date = "-",
     time = "-",
+    size = "0",
+    weight = "0",
   } = route.params || {};
+
+  const buildCreatedAt = () => {
+    const rawDate = String(date || "").trim();
+    const rawTime = String(time || "").trim();
+    if (!rawDate && !rawTime) return undefined;
+    const combined = `${rawDate} ${rawTime}`.trim();
+    const parsed = Date.parse(combined);
+    if (Number.isNaN(parsed)) {
+      return undefined;
+    }
+    return new Date(parsed).toISOString();
+  };
 
   /* 💾 Save to History */
   const handleSave = async () => {
     try {
       console.log("🔥 SAVE PRESSED");
-      const now = new Date();
-
-      // --- 🟢 ส่วนที่เพิ่มใหม่: สร้าง ID 001 ---
-      let finalId = id; // ถ้ามี id ส่งมา (จากการสแกน) ให้ใช้ตัวนั้น
-
-      if (!finalId) {
-        // ถ้าไม่มี id ให้สร้างใหม่ โดยการนับจำนวน document ใน history
-        const historyCollection = collection(db, "history");
-        const snapshot = await getDocs(historyCollection);
-        const count = snapshot.size; // นับจำนวนที่มีอยู่
-
-        // แปลงเลขเป็น format "001", "002" (padZero)
-        finalId = String(count + 1).padStart(3, "0");
+      if (!orangeId) {
+        Alert.alert("Error", "Missing orange reference");
+        return;
       }
 
-      await addDoc(collection(db, "history"), {
-        id: finalId, // ✅ ใช้ ID ที่เราสร้าง
-        name: variety,
-        grade: grade.toLowerCase(),
-        sweetness: `${sweetness}%`,
-        date: now.toLocaleDateString("th-TH"),
-        time: now.toLocaleTimeString("th-TH"),
-        image: image,
-        createdAt: new Date(),
-      });
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Error", "User not logged in");
+        return;
+      }
+
+      const existingOrange = await orangeRepository.getOrangeById(orangeId);
+      if (!existingOrange) {
+        await orangeRepository.addOrange(
+          userId,
+          String(variety || "-"),
+          Number.parseFloat(String(weight)) || 0,
+          Number.parseFloat(String(size)) || 0,
+          buildCreatedAt(),
+          orangeId,
+          typeof image === "string" ? image : undefined,
+        );
+      }
+
+      await analysisRepository.addAnalysisResult(
+        orangeId,
+        Number.parseFloat(String(sweetness)) || 0,
+        Number.parseFloat(String(size)) ||
+          Number.parseFloat(String(weight)) ||
+          0,
+        String(grade),
+      );
+
+      void orangeRepository.syncPendingOranges();
+      void analysisRepository.syncPendingAnalysis();
 
       Alert.alert("Success", "Saved to history");
       navigation.navigate("History");

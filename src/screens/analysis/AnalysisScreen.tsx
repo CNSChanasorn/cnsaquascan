@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -15,10 +15,11 @@ import {
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { db } from "../../firebase/firebase";
+import { auth } from "../../firebase/firebase";
+import { orangeRepository } from "../../firebase/repositories/orangeRepository";
 
 type CollectionItem = {
-  docId: string;
+  orangeId: string;
   id: string;
   name: string;
   size: string;
@@ -53,11 +54,11 @@ function CollectedItemCard({
       <View style={styles.collectedItemContent}>
         <View style={styles.cardGrid}>
           <Text style={styles.cardItem}>🍊 ID: {item.id}</Text>
-          <Text style={styles.cardItem}>🍊 Variety: {item.name}</Text>
+          <Text style={styles.cardItem}>🍊 {item.name}</Text>
           <Text style={styles.cardItem}>⭕ Size: {item.size}</Text>
           <Text style={styles.cardItem}>⚖️ Weight: {item.weight}</Text>
-          <Text style={styles.cardItem}>📅 Date: {item.date}</Text>
-          <Text style={styles.cardItem}>⏰ Time: {item.time}</Text>
+          <Text style={styles.cardItem}>📅 {item.date}</Text>
+          <Text style={styles.cardItem}>⏰ {item.time}</Text>
         </View>
       </View>
 
@@ -78,33 +79,72 @@ export default function AnalysisScreen() {
   const [data, setData] = useState<CollectionItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(
+    auth.currentUser?.uid ?? null,
+  );
+  const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const q = query(collection(db, "collections"), orderBy("createdAt", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: CollectionItem[] = snapshot.docs.map((doc) => {
-        const d: any = doc.data();
-        return {
-          docId: doc.id,
-          id: d.id || doc.id,
-          name: d.name || "-",
-          size: d.size || "0",
-          weight: d.weight || "0",
-          date: d.date || "-",
-          time: d.time || "-",
-          image: d.image,
-        };
-      });
-
-      setData(list);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid ?? null);
     });
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+
+        let rows: any[] = [];
+
+        if (userId) {
+          rows = await orangeRepository.getOrangesByUser(userId);
+        } else {
+          rows = await orangeRepository.getAllOranges();
+        }
+
+        if (rows.length === 0) {
+          rows = await orangeRepository.getAllOranges();
+        }
+        const list: CollectionItem[] = rows.map((row) => {
+          const createdAt = row.created_at
+            ? new Date(row.created_at)
+            : new Date();
+          return {
+            orangeId: row.orange_id,
+            id: row.orange_id,
+            name: row.variety || "-",
+            size: String(row.circle_line ?? "0"),
+            weight: String(row.weight ?? "0"),
+            date: createdAt.toLocaleDateString("th-TH"),
+            time: createdAt.toLocaleTimeString("th-TH"),
+            image: row.image_uri || "https://via.placeholder.com/150",
+          };
+        });
+
+        setData(list);
+        setSelectedItem((prev) =>
+          prev && list.some((item) => item.orangeId === prev.orangeId)
+            ? prev
+            : null,
+        );
+      } catch (err) {
+        console.log("LOAD ORANGES ERROR:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isFocused) {
+      void load();
+    }
+  }, [isFocused, userId]);
 
   // 🔎 Filter logic (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
@@ -153,12 +193,15 @@ export default function AnalysisScreen() {
       setIsAnalyzing(false);
 
       navigation.navigate("Result", {
+        orangeId: selectedItem.orangeId,
         image: selectedItem.image,
         variety: selectedItem.name,
         grade: result.grade,
         sweetness: result.sweetness,
         date: selectedItem.date,
         time: selectedItem.time,
+        size: selectedItem.size,
+        weight: selectedItem.weight,
       });
     }, 2000);
   };
@@ -184,12 +227,16 @@ export default function AnalysisScreen() {
         <ScrollView contentContainerStyle={styles.list}>
           {filteredData.map((item) => (
             <CollectedItemCard
-              key={item.docId}
+              key={item.orangeId}
               item={item}
-              selected={selectedItem?.docId === item.docId}
+              selected={selectedItem?.orangeId === item.orangeId}
               onPress={() => setSelectedItem(item)}
             />
           ))}
+
+          {!isLoading && filteredData.length === 0 && (
+            <Text style={styles.emptyText}>No data found</Text>
+          )}
 
           <TouchableOpacity
             onPress={handleMeasure}
@@ -234,6 +281,11 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: "#FD8342" },
   list: { paddingHorizontal: 20, paddingBottom: 120 },
+  emptyText: {
+    textAlign: "center",
+    color: "#FD8342",
+    marginTop: 12,
+  },
   collectedItem: {
     backgroundColor: "#fff",
     borderRadius: 20,

@@ -10,15 +10,13 @@ import {
   useFonts,
 } from "@expo-google-fonts/cormorant-unicase";
 import { Felipa_400Regular } from "@expo-google-fonts/felipa";
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-} from "@expo-google-fonts/inter";
+import { Inter_400Regular, Inter_500Medium } from "@expo-google-fonts/inter";
 import { TiltNeon_400Regular } from "@expo-google-fonts/tilt-neon";
 
 // 🔥 Firebase
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./src/firebase/firebase";
+import { useDatabaseReady } from "./src/firebase/useDatabase";
 
 export default function App() {
   // 🔐 สถานะ login จาก Firebase
@@ -28,6 +26,7 @@ export default function App() {
   const [hasEnteredApp, setHasEnteredApp] = useState(false);
 
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const { ready: dbReady, error: dbError } = useDatabaseReady();
 
   // 🔤 โหลดฟอนต์
   const [fontsLoaded] = useFonts({
@@ -38,7 +37,7 @@ export default function App() {
     "Inter-Medium": Inter_500Medium,
   });
 
-  // ✅ ฟัง auth state (แค่รู้ว่ามี user หรือไม่)
+  // ✅ ฟัง auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsLogin(!!user);
@@ -49,12 +48,16 @@ export default function App() {
   }, []);
 
   // ⏳ รอ font + auth
-  if (!fontsLoaded || checkingAuth) {
+  if (!fontsLoaded || checkingAuth || !dbReady) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
+  }
+
+  if (dbError) {
+    console.error("Database init error:", dbError);
   }
 
   return (

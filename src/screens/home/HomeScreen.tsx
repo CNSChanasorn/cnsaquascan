@@ -2,7 +2,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -15,7 +14,8 @@ import {
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { auth, db } from "../../firebase/firebase"; // ตรวจสอบ path ให้ถูกต้อง
+import { auth } from "../../firebase/firebase"; // ตรวจสอบ path ให้ถูกต้อง
+import { userRepository } from "../../firebase/repositories/userRepository";
 
 // Define UserData type
 type UserData = {
@@ -33,11 +33,14 @@ export default function HomeScreen() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const userRef = doc(db, "users", user.uid);
-          const snap = await getDoc(userRef);
+          const localUser: any = await userRepository.getUserById(user.uid);
 
-          if (snap.exists()) {
-            setUserData(snap.data() as UserData);
+          if (localUser) {
+            setUserData({
+              fullName: localUser.full_name,
+              username: localUser.username,
+              avatar: localUser.avatar || "",
+            });
           }
         } catch (err) {
           console.log("Error fetching user:", err);
