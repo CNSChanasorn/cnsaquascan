@@ -1,9 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
-import { auth } from "../../firebase/firebase";
 import { orangeRepository } from "../../firebase/repositories/orangeRepository";
 
 type CollectionItem = {
@@ -28,6 +27,8 @@ type CollectionItem = {
   time: string;
   image?: string;
 };
+
+const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 
 type CollectedItemCardProps = {
   item: CollectionItem;
@@ -80,38 +81,17 @@ export default function AnalysisScreen() {
   const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(
-    auth.currentUser?.uid ?? null,
-  );
   const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid ?? null);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
     const load = async () => {
       try {
         setIsLoading(true);
-
-        let rows: any[] = [];
-
-        if (userId) {
-          rows = await orangeRepository.getOrangesByUser(userId);
-        } else {
-          rows = await orangeRepository.getAllOranges();
-        }
-
-        if (rows.length === 0) {
-          rows = await orangeRepository.getAllOranges();
-        }
+        void orangeRepository.syncPendingOranges();
+        const rows: any[] = await orangeRepository.getAllOranges();
         const list: CollectionItem[] = rows.map((row) => {
           const createdAt = row.created_at
             ? new Date(row.created_at)
@@ -120,11 +100,11 @@ export default function AnalysisScreen() {
             orangeId: row.orange_id,
             id: row.orange_id,
             name: row.variety || "-",
-            size: String(row.circle_line ?? "0"),
-            weight: String(row.weight ?? "0"),
+            size: String(row.circle_line ?? "-") || "-",
+            weight: String(row.weight ?? "-") || "-",
             date: createdAt.toLocaleDateString("th-TH"),
             time: createdAt.toLocaleTimeString("th-TH"),
-            image: row.image_uri || "https://via.placeholder.com/150",
+            image: row.image_uri || DEFAULT_IMAGE,
           };
         });
 
@@ -144,7 +124,7 @@ export default function AnalysisScreen() {
     if (isFocused) {
       void load();
     }
-  }, [isFocused, userId]);
+  }, [isFocused]);
 
   // 🔎 Filter logic (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
@@ -224,43 +204,55 @@ export default function AnalysisScreen() {
           <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
 
-        <ScrollView contentContainerStyle={styles.list}>
-          {filteredData.map((item) => (
-            <CollectedItemCard
-              key={item.orangeId}
-              item={item}
-              selected={selectedItem?.orangeId === item.orangeId}
-              onPress={() => setSelectedItem(item)}
-            />
-          ))}
-
-          {!isLoading && filteredData.length === 0 && (
-            <Text style={styles.emptyText}>No data found</Text>
-          )}
-
-          <TouchableOpacity
-            onPress={handleMeasure}
-            disabled={isAnalyzing}
-            activeOpacity={0.85}
-            style={styles.measureButton}
-          >
-            <LinearGradient
-              colors={["#FFAC72", "#FF8937", "#FF6900"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.measureGradient}
-            >
-              <MaterialIcons
-                name={isAnalyzing ? "schedule" : "check-circle"}
-                size={22}
-                color="#fff"
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#FD8342" />
+        ) : (
+          <ScrollView contentContainerStyle={styles.list}>
+            {filteredData.map((item) => (
+              <CollectedItemCard
+                key={item.orangeId}
+                item={item}
+                selected={selectedItem?.orangeId === item.orangeId}
+                onPress={() =>
+                  setSelectedItem((prev) =>
+                    prev?.orangeId === item.orangeId ? null : item,
+                  )
+                }
               />
-              <Text style={styles.measureText}>
-                {isAnalyzing ? "Analyzing..." : "Measure"}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
+            ))}
+
+            {!isLoading && filteredData.length === 0 && (
+              <Text style={styles.emptyText}>No data found</Text>
+            )}
+          </ScrollView>
+        )}
+
+        {selectedItem && (
+          <View style={styles.measureFloating}>
+            <TouchableOpacity
+              onPress={handleMeasure}
+              disabled={isAnalyzing}
+              activeOpacity={0.85}
+              style={styles.measureButton}
+            >
+              <LinearGradient
+                colors={["#FFAC72", "#FF8937", "#FF6900"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.measureGradient}
+              >
+                <MaterialIcons
+                  name={isAnalyzing ? "schedule" : "check-circle"}
+                  size={22}
+                  color="#fff"
+                />
+                <Text style={styles.measureText}>
+                  {isAnalyzing ? "Analyzing..." : "Measure"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </GradientBackground>
   );
@@ -280,7 +272,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   searchInput: { flex: 1, color: "#FD8342" },
-  list: { paddingHorizontal: 20, paddingBottom: 120 },
+  list: { paddingHorizontal: 20, paddingBottom: 160 },
   emptyText: {
     textAlign: "center",
     color: "#FD8342",
@@ -312,7 +304,12 @@ const styles = StyleSheet.create({
   measureButton: {
     borderRadius: 30,
     overflow: "hidden",
-    marginTop: 16,
+  },
+  measureFloating: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    bottom: 78,
   },
   measureGradient: {
     flexDirection: "row",

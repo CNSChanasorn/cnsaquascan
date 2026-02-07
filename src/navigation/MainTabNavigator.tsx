@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack"; // ✅ เพิ่มอันนี้
-import { Text, View } from "react-native";
+// import { Text, View } from "react-native";
 
 // 🔽 Import Screens
 import AnalysisScreen from "../screens/analysis/AnalysisScreen";
@@ -15,14 +15,14 @@ import CollectionStackNavigator from "./CollectionStackNavigator";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-/* 🔹 Placeholder ชั่วคราว */
-function EmptyScreen(title: string) {
-  return () => (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 20 }}>{title}</Text>
-    </View>
-  );
-}
+// /* 🔹 Placeholder ชั่วคราว */
+// function EmptyScreen(title: string) {
+//   return () => (
+//     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+//       <Text style={{ fontSize: 20 }}>{title}</Text>
+//     </View>
+//   );
+// }
 
 // 2️⃣ สร้าง Component สำหรับ "ปุ่มเมนูด้านล่าง" (แยกออกมาไว้ข้างนอก)
 function BottomTabGroup() {

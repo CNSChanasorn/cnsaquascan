@@ -1,7 +1,10 @@
-import { doc, setDoc } from "firebase/firestore";
 import { getDatabase } from "../database";
-import { db as firestoreDb } from "../firebase";
+import { syncManager } from "../SyncManager";
 
+/**
+ * userRepository - Offline-first
+ * ทุก operation บันทึกลง SQLite ก่อน แล้ว queue sync ไป Firebase
+ */
 export const userRepository = {
   async createUser(
     userId: string,
@@ -18,23 +21,17 @@ export const userRepository = {
       [userId, username, fullName, email, phone || null, avatar || null],
     );
 
-    try {
-      await setDoc(
-        doc(firestoreDb, "users", userId),
-        {
-          user_id: userId,
-          username,
-          full_name: fullName,
-          email,
-          phone: phone || null,
-          avatar: avatar || null,
-          updated_at: new Date().toISOString(),
-        },
-        { merge: true },
-      );
-    } catch (error) {
-      console.log("Firestore sync failed (createUser):", error);
-    }
+    // Queue sync to Firebase
+    await syncManager.queueSync("users", userId, "create", {
+      user_id: userId,
+      username,
+      full_name: fullName,
+      email,
+      phone: phone || null,
+      avatar: avatar || null,
+    });
+
+    void syncManager.processQueue();
   },
 
   async getUserById(userId: string) {
@@ -70,20 +67,15 @@ export const userRepository = {
       [fullName, phone, avatar, userId],
     );
 
-    try {
-      await setDoc(
-        doc(firestoreDb, "users", userId),
-        {
-          full_name: fullName,
-          phone: phone || null,
-          avatar: avatar || null,
-          updated_at: new Date().toISOString(),
-        },
-        { merge: true },
-      );
-    } catch (error) {
-      console.log("Firestore sync failed (updateUser):", error);
-    }
+    // Queue sync to Firebase
+    await syncManager.queueSync("users", userId, "update", {
+      user_id: userId,
+      full_name: fullName,
+      phone: phone || null,
+      avatar: avatar || null,
+    });
+
+    void syncManager.processQueue();
   },
 
   async updateAvatar(userId: string, avatarUrl: string) {
@@ -93,17 +85,12 @@ export const userRepository = {
       userId,
     ]);
 
-    try {
-      await setDoc(
-        doc(firestoreDb, "users", userId),
-        {
-          avatar: avatarUrl,
-          updated_at: new Date().toISOString(),
-        },
-        { merge: true },
-      );
-    } catch (error) {
-      console.log("Firestore sync failed (updateAvatar):", error);
-    }
+    // Queue sync to Firebase
+    await syncManager.queueSync("users", userId, "update", {
+      user_id: userId,
+      avatar: avatarUrl,
+    });
+
+    void syncManager.processQueue();
   },
 };

@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
-import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -55,6 +55,7 @@ export default function HistoryScreen() {
   useEffect(() => {
     const load = async () => {
       try {
+        // Trigger background sync (ไม่ block UI)
         void analysisRepository.syncPendingAnalysis();
         const rows: any[] = await analysisRepository.getAllAnalysisResults();
         const list: HistoryItem[] = rows.map((row) => {
@@ -128,7 +129,13 @@ export default function HistoryScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {filteredData.map((item) => (
-              <HistoryCard key={item.resultId} item={item} />
+              <HistoryCard
+                key={item.resultId}
+                item={item}
+                onDelete={(id) =>
+                  setData((prev) => prev.filter((d) => d.resultId !== id))
+                }
+              />
             ))}
           </ScrollView>
         )}
@@ -138,32 +145,52 @@ export default function HistoryScreen() {
 }
 
 /* 🧩 Card */
-function HistoryCard({ item }: { item: HistoryItem }) {
+function HistoryCard({
+  item,
+  onDelete,
+}: {
+  item: HistoryItem;
+  onDelete?: (resultId: string) => void;
+}) {
   const viewShotRef = useRef<ViewShot>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const statusValue = (item.status || "pending").toLowerCase();
   const statusLabel = statusValue === "synced" ? "Synced" : "Pending";
   const statusColor = statusValue === "synced" ? "#4CAF50" : "#FF9800";
 
-  const handleSave = async () => {
-    try {
-      if (viewShotRef.current) {
-        const uri = await viewShotRef.current.capture?.();
-        if (uri) {
-          const isAvailable = await Sharing.isAvailableAsync();
-          if (isAvailable) {
-            await Sharing.shareAsync(uri, {
-              mimeType: "image/png",
-              dialogTitle: "Save or Share Image",
-            });
-          } else {
-            Alert.alert("Error", "Sharing is not available on this device");
+  const handleSave = () => {
+    Alert.alert("Save Image", "Save this image to your gallery?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Save",
+        onPress: async () => {
+          try {
+            setIsSaving(true);
+            if (!viewShotRef.current) return;
+
+            const permission = await MediaLibrary.requestPermissionsAsync(true);
+            if (!permission.granted) {
+              Alert.alert("Permission denied", "Cannot access gallery");
+              return;
+            }
+
+            const uri = await viewShotRef.current.capture?.();
+            if (!uri) {
+              Alert.alert("Error", "Cannot capture image");
+              return;
+            }
+
+            await MediaLibrary.saveToLibraryAsync(uri);
+            Alert.alert("Saved", "Image saved to gallery");
+          } catch (err) {
+            console.log("SAVE ERROR:", err);
+            Alert.alert("Error", "Failed to save image");
+          } finally {
+            setIsSaving(false);
           }
-        }
-      }
-    } catch (err) {
-      console.log("SAVE ERROR:", err);
-      Alert.alert("Error", "Failed to save image");
-    }
+        },
+      },
+    ]);
   };
 
   const handleDelete = async (resultId: string) => {
@@ -178,6 +205,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
           onPress: async () => {
             try {
               await analysisRepository.deleteAnalysis(resultId);
+              onDelete?.(resultId);
             } catch (err) {
               console.log("DELETE ERROR:", err);
             }
@@ -190,15 +218,17 @@ function HistoryCard({ item }: { item: HistoryItem }) {
   return (
     <ViewShot ref={viewShotRef} options={{ format: "png", quality: 1.0 }}>
       <View style={styles.card}>
-        <View style={styles.cardActions}>
-          <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
-            <MaterialIcons name="save" size={18} color="#4CAF50" />
-          </TouchableOpacity>
+        {!isSaving && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
+              <MaterialIcons name="save" size={18} color="#4CAF50" />
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => handleDelete(item.resultId)}>
-            <MaterialIcons name="delete" size={18} color="red" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity onPress={() => handleDelete(item.resultId)}>
+              <MaterialIcons name="delete" size={18} color="red" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         <Image
           source={{ uri: item.image || DEFAULT_IMAGE }}

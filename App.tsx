@@ -15,6 +15,8 @@ import { TiltNeon_400Regular } from "@expo-google-fonts/tilt-neon";
 
 // 🔥 Firebase
 import { onAuthStateChanged } from "firebase/auth";
+import { SyncStatusBar } from "./src/components/SyncStatusBar";
+import { syncManager } from "./src/firebase/SyncManager";
 import { auth } from "./src/firebase/firebase";
 import { useDatabaseReady } from "./src/firebase/useDatabase";
 
@@ -47,6 +49,12 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // 🔄 Auto-sync ครั้งแรกเมื่อ DB พร้อม
+  useEffect(() => {
+    if (!dbReady) return;
+    void syncManager.processQueue();
+  }, [dbReady]);
+
   // ⏳ รอ font + auth
   if (!fontsLoaded || checkingAuth || !dbReady) {
     return (
@@ -62,13 +70,16 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isLogin && hasEnteredApp ? (
-        // ✅ ต้อง login + กดเข้าแอปแล้วเท่านั้น
-        <MainTabNavigator />
-      ) : (
-        // 🔐 เปิดแอป = Welcome เสมอ
-        <AuthNavigator setHasEnteredApp={setHasEnteredApp} />
-      )}
+      <View style={{ flex: 1 }}>
+        <SyncStatusBar />
+        {isLogin && hasEnteredApp ? (
+          // ✅ ต้อง login + กดเข้าแอปแล้วเท่านั้น
+          <MainTabNavigator />
+        ) : (
+          // 🔐 เปิดแอป = Welcome เสมอ
+          <AuthNavigator setHasEnteredApp={setHasEnteredApp} />
+        )}
+      </View>
     </NavigationContainer>
   );
 }

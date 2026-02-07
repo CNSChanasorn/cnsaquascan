@@ -2,15 +2,15 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import AppHeader from "../../components/AppHeader";
@@ -42,7 +42,8 @@ export default function CollectionScreen({ navigation }: any) {
   useEffect(() => {
     const load = async () => {
       try {
-        await orangeRepository.syncPendingOranges();
+        // Trigger background sync (ไม่ block UI)
+        void orangeRepository.syncPendingOranges();
         const rows: any[] = await orangeRepository.getAllOranges();
 
         const list: CollectionItem[] = rows.map((row) => {
@@ -119,6 +120,9 @@ export default function CollectionScreen({ navigation }: any) {
                 key={item.orangeId}
                 item={item}
                 navigation={navigation}
+                onDelete={(id) =>
+                  setData((prev) => prev.filter((d) => d.orangeId !== id))
+                }
               />
             ))}
           </ScrollView>
@@ -141,9 +145,11 @@ export default function CollectionScreen({ navigation }: any) {
 function DataCard({
   item,
   navigation,
+  onDelete,
 }: {
   item: CollectionItem;
   navigation: any;
+  onDelete?: (orangeId: string) => void;
 }) {
   const statusValue = (item.status || "pending").toLowerCase();
   const statusLabel = statusValue === "synced" ? "Synced" : "Pending";
@@ -161,6 +167,7 @@ function DataCard({
           onPress: async () => {
             try {
               await orangeRepository.deleteOrange(item.orangeId);
+              onDelete?.(item.orangeId);
             } catch (err) {
               console.log("DELETE ERROR:", err);
             }

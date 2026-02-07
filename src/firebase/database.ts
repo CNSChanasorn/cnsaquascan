@@ -76,9 +76,22 @@ export async function initializeDatabase() {
       FOREIGN KEY (orange_id) REFERENCES Oranges_Data(orange_id) ON DELETE CASCADE
     );
 
+    -- ✅ Sync Queue Table (offline-first sync tracking)
+    CREATE TABLE IF NOT EXISTS Sync_Queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      table_name TEXT NOT NULL,
+      record_id TEXT NOT NULL,
+      operation TEXT NOT NULL CHECK(operation IN ('create', 'update', 'delete')),
+      data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      retry_count INTEGER DEFAULT 0,
+      last_error TEXT
+    );
+
     -- ✅ สร้าง Index เพื่อเพิ่มความเร็ว
     CREATE INDEX IF NOT EXISTS idx_oranges_user_id ON Oranges_Data(user_id);
     CREATE INDEX IF NOT EXISTS idx_analysis_orange_id ON Analysis_Results(orange_id);
+    CREATE INDEX IF NOT EXISTS idx_sync_queue_table ON Sync_Queue(table_name);
   `);
 
   await ensureUsersHasAvatarColumn(db);
