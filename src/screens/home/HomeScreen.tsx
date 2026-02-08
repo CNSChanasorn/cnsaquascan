@@ -1,16 +1,16 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { onAuthStateChanged } from "firebase/auth";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import AppHeader from "../../components/AppHeader";
 import GradientBackground from "../../components/GradientBackground";
@@ -27,29 +27,44 @@ type UserData = {
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [avatarVersion, setAvatarVersion] = useState(0);
+
+  const loadUser = useCallback(async (userId: string) => {
+    try {
+      const localUser: any = await userRepository.getUserById(userId);
+
+      if (localUser) {
+        setUserData({
+          fullName: localUser.full_name,
+          username: localUser.username,
+          avatar: localUser.avatar || "",
+        });
+        setAvatarVersion(Date.now());
+      }
+    } catch (err) {
+      console.log("Error fetching user:", err);
+    }
+  }, []);
 
   // 🔥 Fetch User Data Logic (เหมือนใน ProfileScreen)
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          const localUser: any = await userRepository.getUserById(user.uid);
-
-          if (localUser) {
-            setUserData({
-              fullName: localUser.full_name,
-              username: localUser.username,
-              avatar: localUser.avatar || "",
-            });
-          }
-        } catch (err) {
-          console.log("Error fetching user:", err);
-        }
+        await loadUser(user.uid);
       }
     });
 
     return unsub;
-  }, []);
+  }, [loadUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        void loadUser(currentUser.uid);
+      }
+    }, [loadUser]),
+  );
 
   // Mock variety data
   const varieties = [
@@ -73,6 +88,10 @@ export default function HomeScreen() {
     },
   ];
 
+  const avatarUri = userData?.avatar
+    ? `${userData.avatar}${userData.avatar.includes("?") ? "&" : "?"}v=${avatarVersion}`
+    : "https://via.placeholder.com/200";
+
   return (
     <GradientBackground>
       <View style={styles.container}>
@@ -94,12 +113,7 @@ export default function HomeScreen() {
             <Text style={styles.welcomeText}>Welcome</Text>
 
             {/* 2. รูป Profile จาก User Data */}
-            <Image
-              source={{
-                uri: userData?.avatar || "https://via.placeholder.com/200",
-              }}
-              style={styles.userImage}
-            />
+            <Image source={{ uri: avatarUri }} style={styles.userImage} />
 
             {/* 3. ชื่อ User อยู่ด้านล่างรูป */}
             <View style={styles.userInfo}>

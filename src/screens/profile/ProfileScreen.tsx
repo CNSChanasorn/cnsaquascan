@@ -4,13 +4,13 @@ import * as ImagePicker from "expo-image-picker";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import GradientBackground from "../../components/GradientBackground";
@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avatarVersion, setAvatarVersion] = useState(0);
 
   /* 🔥 Load current login user */
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
             email: user.email || "-",
             avatar: "",
           });
+          setAvatarVersion(Date.now());
           setLoading(false);
           return;
         }
@@ -66,6 +68,7 @@ export default function ProfileScreen() {
           avatar: localUser.avatar || "",
           phone: localUser.phone || "-",
         });
+        setAvatarVersion(Date.now());
       } catch (err) {
         console.log("🔥 Load user error:", err);
       } finally {
@@ -107,6 +110,7 @@ export default function ProfileScreen() {
         await userRepository.updateAvatar(uid, localPath);
 
         setUserData((prev) => (prev ? { ...prev, avatar: localPath } : prev));
+        setAvatarVersion(Date.now());
       } catch (err) {
         Alert.alert("Error", "Failed to save image");
         console.log("Save error:", err);
@@ -125,6 +129,7 @@ export default function ProfileScreen() {
         await userRepository.updateAvatar(uid, url);
 
         setUserData((prev) => (prev ? { ...prev, avatar: url } : prev));
+        setAvatarVersion(Date.now());
       } catch (err) {
         Alert.alert("Error", "Failed to update avatar");
         console.log("Update error:", err);
@@ -147,6 +152,10 @@ export default function ProfileScreen() {
     );
   }
 
+  const avatarUri = userData?.avatar
+    ? `${userData.avatar}${userData.avatar.includes("?") ? "&" : "?"}v=${avatarVersion}`
+    : "https://via.placeholder.com/200";
+
   return (
     <GradientBackground>
       <View style={styles.container}>
@@ -163,12 +172,7 @@ export default function ProfileScreen() {
 
         {/* Avatar */}
         <View style={styles.avatarBox}>
-          <Image
-            source={{
-              uri: userData?.avatar || "https://via.placeholder.com/200",
-            }}
-            style={styles.avatar}
-          />
+          <Image source={{ uri: avatarUri }} style={styles.avatar} />
 
           <TouchableOpacity
             style={styles.camera}

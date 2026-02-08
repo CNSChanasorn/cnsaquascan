@@ -22,6 +22,16 @@ export async function saveImageLocally(
     // Create file reference
     const destinationFile = new File(imagesDir, filename);
 
+    // If source is already at destination, no-op
+    if (destinationFile.uri === uri) {
+      return destinationFile.uri;
+    }
+
+    // If destination exists, remove it to allow overwrite
+    if (destinationFile.exists) {
+      await destinationFile.delete();
+    }
+
     // Copy file from source URI
     const sourceFile = new File(uri);
     await sourceFile.copy(destinationFile);
