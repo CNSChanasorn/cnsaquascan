@@ -170,6 +170,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="ID (Optional)"
+            placeholderTextColor="#999"
             style={styles.input}
             value={id}
             onChangeText={setId}
@@ -208,6 +209,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="Size (mm)"
+            placeholderTextColor="#999"
             style={styles.input}
             value={size}
             onChangeText={setSize}
@@ -216,6 +218,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="Weight (g)"
+            placeholderTextColor="#999"
             style={styles.input}
             value={weight}
             onChangeText={setWeight}
@@ -224,6 +227,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="Date (DD/MM/YYYY) - Optional"
+            placeholderTextColor="#999"
             style={styles.input}
             value={date}
             onChangeText={setDate}
@@ -231,6 +235,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="Time (HH:mm:sec) - Optional"
+            placeholderTextColor="#999"
             style={styles.input}
             value={time}
             onChangeText={setTime}
@@ -238,6 +243,7 @@ export default function AddCollectionScreen({ navigation }: any) {
 
           <TextInput
             placeholder="Image URL (Optional)"
+            placeholderTextColor="#999"
             style={styles.input}
             value={imageUrl}
             onChangeText={setImageUrl}
@@ -309,8 +315,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
+    color: "#000",
   },
-
   dropdown: {
     backgroundColor: "#fff",
     borderRadius: 16,
