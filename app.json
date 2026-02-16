@@ -16,7 +16,6 @@
       }
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/icon.png"
@@ -60,7 +59,8 @@
           "savePhotosPermission": "Allow AquaScan to save analysis results to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
