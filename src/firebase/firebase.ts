@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDCuBQOodnzBXXsYZk47qNo5RJ5_Np4ksI",
-  authDomain: "cnsaquascan.firebaseapp.com",
-  projectId: "cnsaquascan",
-  storageBucket: "cnsaquascan.firebasestorage.app",
-  messagingSenderId: "242111393690",
-  appId: "1:242111393690:web:c0623f8734d55dbc0d5423",
-  measurementId: "G-RLNEVPNSHK",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? "",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? "",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? "",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID ?? "",
 };
 
 const app = initializeApp(firebaseConfig);
