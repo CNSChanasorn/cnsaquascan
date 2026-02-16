@@ -2,15 +2,16 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import AppHeader from "../../components/AppHeader";
@@ -34,48 +35,62 @@ const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 export default function CollectionScreen({ navigation }: any) {
   const [data, setData] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
+  const loadLocal = async () => {
+    try {
+      const rows: any[] = await orangeRepository.getAllOranges();
+
+      const list: CollectionItem[] = rows.map((row) => {
+        const createdAt = row.created_at
+          ? new Date(row.created_at)
+          : new Date();
+        return {
+          orangeId: row.orange_id,
+          id: row.orange_id,
+          name: row.variety || "-",
+          size: String(row.circle_line ?? "-") || "-",
+          weight: String(row.weight ?? "-") || "-",
+          date: createdAt.toLocaleDateString("th-TH"),
+          time: createdAt.toLocaleTimeString("th-TH"),
+          status: row.status || "pending",
+          image: row.image_uri || DEFAULT_IMAGE,
+        };
+      });
+
+      setData(list);
+    } catch (err) {
+      console.log("LOAD COLLECTION ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
+    const run = async () => {
       try {
-        // Trigger background sync (ไม่ block UI)
-        void orangeRepository.syncPendingOranges();
-        const rows: any[] = await orangeRepository.getAllOranges();
-
-        const list: CollectionItem[] = rows.map((row) => {
-          const createdAt = row.created_at
-            ? new Date(row.created_at)
-            : new Date();
-          return {
-            orangeId: row.orange_id,
-            id: row.orange_id,
-            name: row.variety || "-",
-            size: String(row.circle_line ?? "-") || "-",
-            weight: String(row.weight ?? "-") || "-",
-            date: createdAt.toLocaleDateString("th-TH"),
-            time: createdAt.toLocaleTimeString("th-TH"),
-            status: row.status || "pending",
-            image: row.image_uri || DEFAULT_IMAGE,
-          };
-        });
-
-        setData(list);
-      } catch (err) {
-        console.log("LOAD COLLECTION ERROR:", err);
+        await loadLocal();
       } finally {
-        setLoading(false);
+        setRefreshing(false);
       }
     };
 
     if (isFocused) {
       setLoading(true);
-      load();
+      void run();
     }
   }, [isFocused]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await orangeRepository.syncPendingOranges();
+    await loadLocal();
+    setRefreshing(false);
+  };
 
   // 🔎 Filtered data (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
@@ -114,7 +129,16 @@ export default function CollectionScreen({ navigation }: any) {
         {loading ? (
           <ActivityIndicator size="large" color="#FD8342" />
         ) : (
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FD8342"
+              />
+            }
+          >
             {filteredData.map((item) => (
               <DataCard
                 key={item.orangeId}

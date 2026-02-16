@@ -3,6 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +22,7 @@ export default function EditCollectionScreen({ route, navigation }: any) {
 
   const [id, setId] = useState(String(item.id ?? ""));
   const [variety, setVariety] = useState(String(item.name ?? ""));
+  const [isVarietyOpen, setIsVarietyOpen] = useState(false);
   const [size, setSize] = useState(String(item.size ?? ""));
   const [weight, setWeight] = useState(String(item.weight ?? ""));
   const [date, setDate] = useState(String(item.date ?? ""));
@@ -26,6 +30,8 @@ export default function EditCollectionScreen({ route, navigation }: any) {
   const [imageUrl, setImageUrl] = useState(String(item.image ?? ""));
   const [localImageUri, setLocalImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const VARIETY_OPTIONS = ["Sai Nam Phueng", "Mandarin", "Tangarine"];
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -97,55 +103,119 @@ export default function EditCollectionScreen({ route, navigation }: any) {
 
   return (
     <GradientBackground>
-      <View style={styles.container}>
-        <Text style={styles.title}>Edit Data</Text>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>Edit Data</Text>
 
-        <TextInput style={styles.input} value={id} onChangeText={setId} />
-        <TextInput
-          style={styles.input}
-          value={variety}
-          onChangeText={setVariety}
-        />
-        <TextInput style={styles.input} value={size} onChangeText={setSize} />
-        <TextInput
-          style={styles.input}
-          value={weight}
-          onChangeText={setWeight}
-          keyboardType="numeric"
-        />
-        <TextInput style={styles.input} value={date} onChangeText={setDate} />
-        <TextInput style={styles.input} value={time} onChangeText={setTime} />
-        <TextInput
-          style={styles.input}
-          value={imageUrl}
-          onChangeText={setImageUrl}
-          placeholder="Image URL"
-        />
-
-        <TouchableOpacity onPress={pickImage} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#FFD270", "#FFA160", "#FD691A"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.secondaryButton}
+          <TextInput style={styles.input} value={id} onChangeText={setId} />
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setIsVarietyOpen((prev) => !prev)}
+            style={styles.dropdown}
           >
-            <Text style={styles.buttonText}>Pick Image</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleUpdate} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#FFAC72", "#FF8937", "#FF6900"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? "Saving..." : "Save"}
+            <Text
+              style={
+                variety ? styles.dropdownText : styles.dropdownPlaceholderText
+              }
+            >
+              {variety || "Select Variety"}
             </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+
+          {isVarietyOpen && (
+            <View style={styles.dropdownList}>
+              {VARIETY_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setVariety(option);
+                    setIsVarietyOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <TextInput
+            style={styles.input}
+            value={size}
+            onChangeText={setSize}
+            keyboardType="numeric"
+          />
+          <TextInput
+            style={styles.input}
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="numeric"
+          />
+          <TextInput
+            placeholder="Date (DD/MM/YYYY) - Optional"
+            style={styles.input}
+            value={date}
+            onChangeText={setDate}
+          />
+
+          <TextInput
+            placeholder="Time (HH:mm:sec) - Optional"
+            style={styles.input}
+            value={time}
+            onChangeText={setTime}
+          />
+          <TextInput
+            style={styles.input}
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            placeholder="Image URL"
+          />
+
+          <TouchableOpacity onPress={pickImage} activeOpacity={0.85}>
+            <LinearGradient
+              colors={["#FFD270", "#FFA160", "#FD691A"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.buttonText}>Pick Image</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+              style={[styles.cancelButton, styles.actionButton]}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleUpdate}
+              activeOpacity={0.85}
+              style={styles.actionButton}
+            >
+              <LinearGradient
+                colors={["#FFAC72", "#FF8937", "#FF6900"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? "Saving..." : "Save"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </GradientBackground>
   );
 }
@@ -154,7 +224,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+  },
+  contentContainer: {
+    flexGrow: 1,
     justifyContent: "center",
+    paddingBottom: 80,
   },
   title: {
     fontSize: 28,
@@ -169,8 +243,42 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
-  button: {
+  dropdown: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  dropdownText: {
+    color: "#000",
+  },
+  dropdownPlaceholderText: {
+    color: "#999",
+  },
+  dropdownList: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  dropdownItemText: {
+    color: "#000",
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
     marginTop: 20,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  button: {
     padding: 16,
     borderRadius: 30,
     alignItems: "center",
@@ -181,8 +289,19 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
   },
+  cancelButton: {
+    padding: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+  },
   buttonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  cancelText: {
+    color: "#444",
     fontSize: 16,
     fontWeight: "600",
   },

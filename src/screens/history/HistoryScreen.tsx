@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -47,49 +48,63 @@ const gradeText = (grade: HistoryItem["grade"]) => {
 export default function HistoryScreen() {
   const [data, setData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
 
   // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        // Trigger background sync (ไม่ block UI)
-        void analysisRepository.syncPendingAnalysis();
-        const rows: any[] = await analysisRepository.getAllAnalysisResults();
-        const list: HistoryItem[] = rows.map((row) => {
-          const analyzedAt = row.analyzed_at
-            ? new Date(row.analyzed_at)
-            : new Date();
-          return {
-            resultId: row.result_id,
-            id: row.orange_id,
-            name: row.variety || "-",
-            size: String(row.circle_line ?? "-") || "-",
-            weight: String(row.weight ?? "-") || "-",
-            grade: row.grade || "-",
-            sweetness: `${row.brix_value ?? "-"}`,
-            date: analyzedAt.toLocaleDateString("th-TH"),
-            time: analyzedAt.toLocaleTimeString("th-TH"),
-            status: row.status || "pending",
-            image: row.image_uri || DEFAULT_IMAGE,
-          };
-        });
+  const loadLocal = async () => {
+    try {
+      const rows: any[] = await analysisRepository.getAllAnalysisResults();
+      const list: HistoryItem[] = rows.map((row) => {
+        const analyzedAt = row.analyzed_at
+          ? new Date(row.analyzed_at)
+          : new Date();
+        return {
+          resultId: row.result_id,
+          id: row.orange_id,
+          name: row.variety || "-",
+          size: String(row.circle_line ?? "-") || "-",
+          weight: String(row.weight ?? "-") || "-",
+          grade: row.grade || "-",
+          sweetness: `${row.brix_value ?? "-"}`,
+          date: analyzedAt.toLocaleDateString("th-TH"),
+          time: analyzedAt.toLocaleTimeString("th-TH"),
+          status: row.status || "pending",
+          image: row.image_uri || DEFAULT_IMAGE,
+        };
+      });
 
-        setData(list);
-      } catch (err) {
-        console.log("LOAD HISTORY ERROR:", err);
+      setData(list);
+    } catch (err) {
+      console.log("LOAD HISTORY ERROR:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        await loadLocal();
       } finally {
-        setLoading(false);
+        setRefreshing(false);
       }
     };
 
     if (isFocused) {
       setLoading(true);
-      load();
+      void run();
     }
   }, [isFocused]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await analysisRepository.syncPendingAnalysis();
+    await loadLocal();
+    setRefreshing(false);
+  };
 
   // 🔎 Filter logic
   const filteredData = data.filter((item) => {
@@ -127,7 +142,16 @@ export default function HistoryScreen() {
         {loading ? (
           <ActivityIndicator size="large" color="#FD8342" />
         ) : (
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView
+            contentContainerStyle={styles.list}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FD8342"
+              />
+            }
+          >
             {filteredData.map((item) => (
               <HistoryCard
                 key={item.resultId}

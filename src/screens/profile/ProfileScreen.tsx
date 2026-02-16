@@ -4,13 +4,15 @@ import * as ImagePicker from "expo-image-picker";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import GradientBackground from "../../components/GradientBackground";
@@ -32,6 +34,8 @@ export default function ProfileScreen() {
   const [uid, setUid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [avatarVersion, setAvatarVersion] = useState(0);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkInput, setLinkInput] = useState("");
 
   /* 🔥 Load current login user */
   useEffect(() => {
@@ -119,22 +123,34 @@ export default function ProfileScreen() {
   };
 
   /* 🔗 Set image by URL */
-  const setImageLink = () => {
+  const openImageLink = () => {
     if (!uid) return;
+    setLinkInput(userData?.avatar || "");
+    setIsLinkModalOpen(true);
+  };
 
-    Alert.prompt("Image URL", "ใส่ลิงก์รูป", async (url) => {
-      if (!url) return;
+  const saveImageLink = async () => {
+    if (!uid) return;
+    const url = linkInput.trim();
+    if (!url) {
+      Alert.alert("Error", "Please enter a URL");
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      Alert.alert("Error", "URL must start with http:// or https://");
+      return;
+    }
 
-      try {
-        await userRepository.updateAvatar(uid, url);
+    try {
+      await userRepository.updateAvatar(uid, url);
 
-        setUserData((prev) => (prev ? { ...prev, avatar: url } : prev));
-        setAvatarVersion(Date.now());
-      } catch (err) {
-        Alert.alert("Error", "Failed to update avatar");
-        console.log("Update error:", err);
-      }
-    });
+      setUserData((prev) => (prev ? { ...prev, avatar: url } : prev));
+      setAvatarVersion(Date.now());
+      setIsLinkModalOpen(false);
+    } catch (err) {
+      Alert.alert("Error", "Failed to update avatar");
+      console.log("Update error:", err);
+    }
   };
 
   /* 🚪 Logout */
@@ -154,7 +170,7 @@ export default function ProfileScreen() {
 
   const avatarUri = userData?.avatar
     ? `${userData.avatar}${userData.avatar.includes("?") ? "&" : "?"}v=${avatarVersion}`
-    : "https://via.placeholder.com/200";
+    : "";
 
   return (
     <GradientBackground>
@@ -172,14 +188,22 @@ export default function ProfileScreen() {
 
         {/* Avatar */}
         <View style={styles.avatarBox}>
-          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          {userData?.avatar ? (
+            <>
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            </>
+          ) : (
+            <View style={[styles.avatar, styles.defaultAvatar]}>
+              <MaterialIcons name="person" size={60} color="#FD8342" />
+            </View>
+          )}
 
           <TouchableOpacity
             style={styles.camera}
             onPress={() =>
               Alert.alert("Choose", "Select option", [
                 { text: "Gallery", onPress: pickImage },
-                { text: "Image URL", onPress: setImageLink },
+                { text: "Image URL", onPress: openImageLink },
                 { text: "Cancel", style: "cancel" },
               ])
             }
@@ -187,6 +211,42 @@ export default function ProfileScreen() {
             <MaterialIcons name="photo-camera" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
+
+        <Modal
+          visible={isLinkModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsLinkModalOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Image URL</Text>
+              <TextInput
+                value={linkInput}
+                onChangeText={setLinkInput}
+                placeholder="https://..."
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                style={styles.modalInput}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancel]}
+                  onPress={() => setIsLinkModalOpen(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalSave]}
+                  onPress={saveImageLink}
+                >
+                  <Text style={styles.modalSaveText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Info */}
         <Text style={styles.username}>{userData?.username}</Text>
@@ -233,6 +293,11 @@ const styles = StyleSheet.create({
   },
   avatarBox: { position: "relative", alignSelf: "center", marginBottom: 16 },
   avatar: { width: 140, height: 140, borderRadius: 70 },
+  defaultAvatar: {
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   camera: {
     position: "absolute",
     bottom: 6,
@@ -258,4 +323,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoutText: { color: "#fff", fontWeight: "600" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "600", marginBottom: 10 },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#F0D7C3",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  modalCancel: {
+    backgroundColor: "#EEE",
+  },
+  modalSave: {
+    backgroundColor: "#FF8A3D",
+  },
+  modalCancelText: { color: "#333", fontWeight: "600" },
+  modalSaveText: { color: "#fff", fontWeight: "600" },
 });

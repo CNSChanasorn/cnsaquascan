@@ -1,6 +1,8 @@
 import * as Crypto from "expo-crypto";
+import { doc, getDoc } from "firebase/firestore";
 
 import { getDatabase } from "../database";
+import { db as firestoreDb } from "../firebase";
 import { syncManager } from "../SyncManager";
 
 /**
@@ -8,6 +10,20 @@ import { syncManager } from "../SyncManager";
  * ทุก operation บันทึกลง SQLite ก่อน แล้ว queue sync ไป Firebase
  */
 export const orangeRepository = {
+  async isOrangeIdTaken(orangeId: string): Promise<boolean> {
+    const local = await this.getOrangeById(orangeId);
+    if (local) {
+      return true;
+    }
+
+    try {
+      const snapshot = await getDoc(doc(firestoreDb, "oranges", orangeId));
+      return snapshot.exists();
+    } catch {
+      return false;
+    }
+  },
+
   async addOrange(
     userId: string,
     variety: string,

@@ -3,6 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -60,6 +63,29 @@ export default function AddCollectionScreen({ navigation }: any) {
     }
   };
 
+  const resolveUniqueOrangeId = async (candidateId: string) => {
+    let currentId = candidateId.trim();
+    let tries = 0;
+
+    while (tries < 50) {
+      const taken = await orangeRepository.isOrangeIdTaken(currentId);
+      if (!taken) {
+        return currentId;
+      }
+
+      const numeric = Number.parseInt(currentId, 10);
+      if (Number.isNaN(numeric)) {
+        currentId = await getNextOrangeId();
+      } else {
+        currentId = String(numeric + 1);
+      }
+
+      tries++;
+    }
+
+    return currentId;
+  };
+
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -97,7 +123,9 @@ export default function AddCollectionScreen({ navigation }: any) {
       const createdAt = buildCreatedAt();
 
       // Generate numeric orange ID if not provided
-      const orangeId = id.trim() || (await getNextOrangeId()) || randomUUID();
+      const candidateId =
+        id.trim() || (await getNextOrangeId()) || randomUUID();
+      const orangeId = await resolveUniqueOrangeId(candidateId);
 
       let finalImagePath = imageUrl.trim();
       if (localImageUri) {
@@ -129,108 +157,132 @@ export default function AddCollectionScreen({ navigation }: any) {
 
   return (
     <GradientBackground>
-      <View style={styles.container}>
-        <Text style={styles.title}>Add New Data</Text>
-
-        <TextInput
-          placeholder="ID (optional)"
-          style={styles.input}
-          value={id}
-          onChangeText={setId}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => setIsVarietyOpen((prev) => !prev)}
-          style={styles.dropdown}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text
-            style={
-              variety ? styles.dropdownText : styles.dropdownPlaceholderText
-            }
+          <Text style={styles.title}>Add New Data</Text>
+
+          <TextInput
+            placeholder="ID (Optional)"
+            style={styles.input}
+            value={id}
+            onChangeText={setId}
+          />
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setIsVarietyOpen((prev) => !prev)}
+            style={styles.dropdown}
           >
-            {variety || "Select Variety"}
-          </Text>
-        </TouchableOpacity>
-
-        {isVarietyOpen && (
-          <View style={styles.dropdownList}>
-            {VARIETY_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={styles.dropdownItem}
-                onPress={() => {
-                  setVariety(option);
-                  setIsVarietyOpen(false);
-                }}
-              >
-                <Text style={styles.dropdownItemText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        <TextInput
-          placeholder="Size"
-          style={styles.input}
-          value={size}
-          onChangeText={setSize}
-        />
-
-        <TextInput
-          placeholder="Weight (g)"
-          style={styles.input}
-          value={weight}
-          onChangeText={setWeight}
-          keyboardType="numeric"
-        />
-
-        <TextInput
-          placeholder="Date"
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-        />
-
-        <TextInput
-          placeholder="Time"
-          style={styles.input}
-          value={time}
-          onChangeText={setTime}
-        />
-
-        <TextInput
-          placeholder="Image URL (optional)"
-          style={styles.input}
-          value={imageUrl}
-          onChangeText={setImageUrl}
-          autoCapitalize="none"
-        />
-
-        <TouchableOpacity onPress={pickImage} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#FFD270", "#FFA160", "#FD691A"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.buttonText}>Pick Image</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleAdd} activeOpacity={0.85}>
-          <LinearGradient
-            colors={["#FFAC72", "#FF8937", "#FF6900"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.button}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? "Saving..." : "Add"}
+            <Text
+              style={
+                variety ? styles.dropdownText : styles.dropdownPlaceholderText
+              }
+            >
+              {variety || "Select Variety"}
             </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+
+          {isVarietyOpen && (
+            <View style={styles.dropdownList}>
+              {VARIETY_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setVariety(option);
+                    setIsVarietyOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <TextInput
+            placeholder="Size (mm)"
+            style={styles.input}
+            value={size}
+            onChangeText={setSize}
+            keyboardType="numeric"
+          />
+
+          <TextInput
+            placeholder="Weight (g)"
+            style={styles.input}
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="numeric"
+          />
+
+          <TextInput
+            placeholder="Date (DD/MM/YYYY) - Optional"
+            style={styles.input}
+            value={date}
+            onChangeText={setDate}
+          />
+
+          <TextInput
+            placeholder="Time (HH:mm:sec) - Optional"
+            style={styles.input}
+            value={time}
+            onChangeText={setTime}
+          />
+
+          <TextInput
+            placeholder="Image URL (Optional)"
+            style={styles.input}
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity onPress={pickImage} activeOpacity={0.85}>
+            <LinearGradient
+              colors={["#FFD270", "#FFA160", "#FD691A"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.buttonText}>Pick Image</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+              style={[styles.cancelButton, styles.actionButton]}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleAdd}
+              activeOpacity={0.85}
+              style={styles.actionButton}
+            >
+              <LinearGradient
+                colors={["#FFAC72", "#FF8937", "#FF6900"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}
+              >
+                <Text style={styles.buttonText}>
+                  {loading ? "Saving..." : "Add"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </GradientBackground>
   );
 }
@@ -239,7 +291,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+  },
+  contentContainer: {
+    flexGrow: 1,
     justifyContent: "center",
+    paddingBottom: 80,
   },
   title: {
     fontSize: 28,
@@ -254,6 +310,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+
   dropdown: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -280,8 +337,15 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     color: "#000",
   },
-  button: {
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
     marginTop: 20,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  button: {
     padding: 16,
     borderRadius: 30,
     alignItems: "center",
@@ -292,8 +356,19 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
   },
+  cancelButton: {
+    padding: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+  },
   buttonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  cancelText: {
+    color: "#444",
     fontSize: 16,
     fontWeight: "600",
   },

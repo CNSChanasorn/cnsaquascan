@@ -1,5 +1,12 @@
 import NetInfo from "@react-native-community/netinfo";
-import { deleteDoc, doc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
 
 import { getDatabase } from "./database";
 import { db as firestoreDb } from "./firebase";
@@ -17,6 +24,293 @@ type SyncQueueItem = {
 
 const MAX_RETRIES = 5;
 let _isSyncing = false;
+let _isPulling = false;
+
+async function isOnline(): Promise<boolean> {
+  try {
+    const state = await NetInfo.fetch();
+    return !!state.isConnected;
+  } catch {
+    return false;
+  }
+}
+
+async function syncFromFirestoreInternal() {
+  const db = await getDatabase();
+
+  const usersSnap = await getDocs(collection(firestoreDb, "users"));
+  const orangesSnap = await getDocs(collection(firestoreDb, "oranges"));
+  const analysisSnap = await getDocs(
+    collection(firestoreDb, "analysis_results"),
+  );
+
+  const orangeIds: string[] = [];
+  const analysisIds: string[] = [];
+
+  await db.execAsync("BEGIN;");
+  try {
+    const ensureUserRow = async (userId: string) => {
+      const existing = await db.getFirstAsync<{ user_id: string }>(
+        "SELECT user_id FROM Users WHERE user_id = ?",
+        [userId],
+      );
+      if (existing?.user_id) {
+        return;
+      }
+
+      const safeId = String(userId);
+      await db.runAsync(
+        `INSERT INTO Users (user_id, username, full_name, email, phone, avatar)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           username = excluded.username,
+           full_name = excluded.full_name,
+           email = excluded.email,
+           phone = excluded.phone,
+           avatar = excluded.avatar`,
+        [
+          safeId,
+          `user_${safeId}`,
+          `user_${safeId}`,
+          `${safeId}@placeholder.local`,
+          null,
+          null,
+        ],
+      );
+    };
+
+    for (const docSnap of usersSnap.docs) {
+      const data: any = docSnap.data();
+      const userId = data.user_id || docSnap.id;
+      await db.runAsync(
+        `INSERT INTO Users (user_id, username, full_name, email, phone, avatar)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           username = excluded.username,
+           full_name = excluded.full_name,
+           email = excluded.email,
+           phone = excluded.phone,
+           avatar = excluded.avatar`,
+        [
+          userId,
+          data.username || `user_${userId}`,
+          data.full_name || `user_${userId}`,
+          data.email || `${userId}@placeholder.local`,
+          data.phone || null,
+          data.avatar || null,
+        ],
+      );
+    }
+
+    for (const docSnap of orangesSnap.docs) {
+      const data: any = docSnap.data();
+      const orangeId = data.orange_id || docSnap.id;
+      if (!data.user_id) {
+        continue;
+      }
+      await ensureUserRow(data.user_id);
+      orangeIds.push(orangeId);
+
+      const local = await db.getFirstAsync<{ status: string }>(
+        "SELECT status FROM Oranges_Data WHERE orange_id = ?",
+        [orangeId],
+      );
+      if (local?.status === "pending") {
+        continue;
+      }
+
+      await db.runAsync(
+        `INSERT INTO Oranges_Data (orange_id, user_id, variety, weight, circle_line, created_at, status, image_uri)
+         VALUES (?, ?, ?, ?, ?, ?, 'synced', ?)
+         ON CONFLICT(orange_id) DO UPDATE SET
+           user_id = excluded.user_id,
+           variety = excluded.variety,
+           weight = excluded.weight,
+           circle_line = excluded.circle_line,
+           created_at = excluded.created_at,
+           status = excluded.status,
+           image_uri = excluded.image_uri`,
+        [
+          orangeId,
+          data.user_id,
+          data.variety || "-",
+          data.weight ?? 0,
+          data.circle_line ?? 0,
+          data.created_at || new Date().toISOString(),
+          data.image_uri || null,
+        ],
+      );
+    }
+
+    for (const docSnap of analysisSnap.docs) {
+      const data: any = docSnap.data();
+      const resultId = data.result_id || docSnap.id;
+      if (!data.orange_id) {
+        continue;
+      }
+      const hasOrange = await db.getFirstAsync<{ orange_id: string }>(
+        "SELECT orange_id FROM Oranges_Data WHERE orange_id = ?",
+        [data.orange_id],
+      );
+      if (!hasOrange?.orange_id) {
+        continue;
+      }
+      analysisIds.push(resultId);
+
+      const local = await db.getFirstAsync<{ status: string }>(
+        "SELECT status FROM Analysis_Results WHERE result_id = ?",
+        [resultId],
+      );
+      if (local?.status === "pending") {
+        continue;
+      }
+
+      await db.runAsync(
+        `INSERT INTO Analysis_Results (result_id, orange_id, brix_value, volume, grade, analyzed_at, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'synced')
+         ON CONFLICT(result_id) DO UPDATE SET
+           orange_id = excluded.orange_id,
+           brix_value = excluded.brix_value,
+           volume = excluded.volume,
+           grade = excluded.grade,
+           analyzed_at = excluded.analyzed_at,
+           status = excluded.status`,
+        [
+          resultId,
+          data.orange_id,
+          data.brix_value ?? 0,
+          data.volume ?? 0,
+          data.grade || "-",
+          data.analyzed_at || new Date().toISOString(),
+        ],
+      );
+    }
+
+    if (orangeIds.length === 0) {
+      await db.runAsync(
+        "DELETE FROM Oranges_Data WHERE status = 'synced' AND NOT EXISTS (SELECT 1 FROM Analysis_Results ar WHERE ar.orange_id = Oranges_Data.orange_id AND ar.status = 'pending')",
+      );
+    } else {
+      const placeholders = orangeIds.map(() => "?").join(",");
+      await db.runAsync(
+        `DELETE FROM Oranges_Data
+         WHERE status = 'synced'
+           AND orange_id NOT IN (${placeholders})
+           AND NOT EXISTS (SELECT 1 FROM Analysis_Results ar WHERE ar.orange_id = Oranges_Data.orange_id AND ar.status = 'pending')`,
+        orangeIds,
+      );
+    }
+
+    if (analysisIds.length === 0) {
+      await db.runAsync("DELETE FROM Analysis_Results WHERE status = 'synced'");
+    } else {
+      const placeholders = analysisIds.map(() => "?").join(",");
+      await db.runAsync(
+        `DELETE FROM Analysis_Results WHERE status = 'synced' AND result_id NOT IN (${placeholders})`,
+        analysisIds,
+      );
+    }
+
+    await db.execAsync("COMMIT;");
+  } catch (error) {
+    await db.execAsync("ROLLBACK;");
+    throw error;
+  }
+}
+
+async function isOrangeIdTakenAnywhere(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  orangeId: string,
+): Promise<boolean> {
+  const local = await db.getFirstAsync<{ orange_id: string }>(
+    "SELECT orange_id FROM Oranges_Data WHERE orange_id = ?",
+    [orangeId],
+  );
+  if (local?.orange_id) {
+    return true;
+  }
+
+  try {
+    const snapshot = await getDoc(doc(firestoreDb, "oranges", orangeId));
+    return snapshot.exists();
+  } catch {
+    return false;
+  }
+}
+
+async function resolveUniqueOrangeId(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  currentId: string,
+): Promise<string> {
+  let candidate = currentId;
+  let tries = 0;
+
+  while (tries < 50) {
+    const taken = await isOrangeIdTakenAnywhere(db, candidate);
+    if (!taken) {
+      return candidate;
+    }
+
+    const numeric = Number.parseInt(candidate, 10);
+    if (Number.isNaN(numeric)) {
+      candidate = `${currentId}-${tries + 1}`;
+    } else {
+      candidate = String(numeric + 1);
+    }
+
+    tries++;
+  }
+
+  return candidate;
+}
+
+async function updateOrangeIdLocal(
+  db: Awaited<ReturnType<typeof getDatabase>>,
+  oldId: string,
+  newId: string,
+) {
+  await db.execAsync("BEGIN;");
+  try {
+    await db.runAsync(
+      "UPDATE Oranges_Data SET orange_id = ? WHERE orange_id = ?",
+      [newId, oldId],
+    );
+    await db.runAsync(
+      "UPDATE Analysis_Results SET orange_id = ? WHERE orange_id = ?",
+      [newId, oldId],
+    );
+    await db.runAsync(
+      "UPDATE Sync_Queue SET record_id = ? WHERE table_name = 'oranges' AND record_id = ?",
+      [newId, oldId],
+    );
+
+    const analysisQueue = await db.getAllAsync<SyncQueueItem>(
+      "SELECT * FROM Sync_Queue WHERE table_name = 'analysis_results'",
+    );
+    for (const item of analysisQueue) {
+      if (!item.data) {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(item.data);
+        if (parsed?.orange_id === oldId) {
+          parsed.orange_id = newId;
+          await db.runAsync("UPDATE Sync_Queue SET data = ? WHERE id = ?", [
+            JSON.stringify(parsed),
+            item.id,
+          ]);
+        }
+      } catch {
+        // Ignore malformed data
+      }
+    }
+
+    await db.execAsync("COMMIT;");
+  } catch (error) {
+    await db.execAsync("ROLLBACK;");
+    throw error;
+  }
+}
 
 /**
  * SyncManager - จัดการ sync queue ส่งข้อมูลจาก SQLite ไป Firebase
@@ -101,13 +395,7 @@ export const syncManager = {
 
     try {
       // ตรวจว่าออนไลน์ก่อน
-      try {
-        const state = await NetInfo.fetch();
-        if (!state.isConnected) {
-          const remaining = await this.getQueueCount();
-          return { synced: 0, failed: 0, remaining };
-        }
-      } catch {
+      if (!(await isOnline())) {
         const remaining = await this.getQueueCount();
         return { synced: 0, failed: 0, remaining };
       }
@@ -118,8 +406,9 @@ export const syncManager = {
         [MAX_RETRIES],
       );
 
-      // ไม่มีอะไรต้อง sync → return เงียบ ๆ
+      // ไม่มีอะไรต้อง sync → ยัง pull จาก Firestore เพื่ออัปเดตทุกเครื่องให้เหมือนกัน
       if (items.length === 0) {
+        await syncFromFirestoreInternal();
         return { synced: 0, failed: 0, remaining: 0 };
       }
 
@@ -145,6 +434,8 @@ export const syncManager = {
         }
       }
 
+      await syncFromFirestoreInternal();
+
       const remaining = await this.getQueueCount();
       console.log(
         `✅ Sync complete: ${synced} synced, ${failed} failed, ${remaining} remaining`,
@@ -155,6 +446,23 @@ export const syncManager = {
     }
   },
 
+  /** ดึงข้อมูลจาก Firestore มาลง SQLite (ทุกอุปกรณ์ได้ข้อมูลเหมือนกัน) */
+  async syncFromFirestore() {
+    if (_isPulling) {
+      return;
+    }
+    if (!(await isOnline())) {
+      return;
+    }
+
+    _isPulling = true;
+    try {
+      await syncFromFirestoreInternal();
+    } finally {
+      _isPulling = false;
+    }
+  },
+
   /** ดำเนินการ sync 1 item */
   async processSyncItem(item: SyncQueueItem) {
     const collectionName = this.getFirestoreCollection(item.table_name);
@@ -162,9 +470,28 @@ export const syncManager = {
 
     switch (item.operation) {
       case "create":
-      case "update":
+      case "update": {
+        let recordId = item.record_id;
+
+        if (item.table_name === "oranges" && item.operation === "create") {
+          const exists = await isOrangeIdTakenAnywhere(
+            await getDatabase(),
+            recordId,
+          );
+          if (exists) {
+            const db = await getDatabase();
+            const uniqueId = await resolveUniqueOrangeId(db, recordId);
+            if (uniqueId !== recordId) {
+              await updateOrangeIdLocal(db, recordId, uniqueId);
+              recordId = uniqueId;
+              item.record_id = uniqueId;
+              data.orange_id = uniqueId;
+            }
+          }
+        }
+
         await setDoc(
-          doc(firestoreDb, collectionName, item.record_id),
+          doc(firestoreDb, collectionName, recordId),
           {
             ...data,
             status: "synced",
@@ -173,6 +500,7 @@ export const syncManager = {
           { merge: true },
         );
         break;
+      }
 
       case "delete":
         await deleteDoc(doc(firestoreDb, collectionName, item.record_id));

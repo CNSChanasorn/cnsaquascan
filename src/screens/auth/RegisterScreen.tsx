@@ -3,11 +3,13 @@ import { useState } from "react";
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
+  TouchableOpacity
 } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 
@@ -156,91 +158,100 @@ export default function RegisterScreen({ navigation }: any) {
 
   return (
     <GradientBackground>
-      <View style={styles.container}>
-        <Text style={styles.title}>REGISTER</Text>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.title}>REGISTER</Text>
 
-        {/* 🖼 Avatar */}
-        <TouchableOpacity style={styles.avatarBox} onPress={pickImage}>
-          <Image
-            source={{
-              uri: avatar || "https://via.placeholder.com/150",
-            }}
-            style={styles.avatar}
+          {/* 🖼 Avatar */}
+          <TouchableOpacity style={styles.avatarBox} onPress={pickImage}>
+            <Image
+              source={{
+                uri: avatar || "https://via.placeholder.com/150",
+              }}
+              style={styles.avatar}
+            />
+            <Text style={styles.avatarText}>Tap to choose photo</Text>
+          </TouchableOpacity>
+
+          <TextInput
+            placeholder="Full Name"
+            placeholderTextColor="#5E2206"
+            style={styles.input}
+            value={fullName}
+            onChangeText={setFullName}
           />
-          <Text style={styles.avatarText}>Tap to choose photo</Text>
-        </TouchableOpacity>
+          <TextInput
+            placeholder="Username"
+            placeholderTextColor="#5E2206"
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+          />
+          <TextInput
+            placeholder="Phone"
+            placeholderTextColor="#5E2206"
+            style={styles.input}
+            value={phone}
+            onChangeText={setPhone}
+            autoCapitalize="none"
+          />
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor="#5E2206"
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+          />
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#5E2206"
+            secureTextEntry
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TextInput
+            placeholder="Confirm Password"
+            placeholderTextColor="#5E2206"
+            secureTextEntry
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
 
-        <TextInput
-          placeholder="Full Name"
-          placeholderTextColor="#5E2206"
-          style={styles.input}
-          value={fullName}
-          onChangeText={setFullName}
-        />
-        <TextInput
-          placeholder="Username"
-          placeholderTextColor="#5E2206"
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TextInput
-          placeholder="Phone"
-          placeholderTextColor="#5E2206"
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor="#5E2206"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#5E2206"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TextInput
-          placeholder="Confirm Password"
-          placeholderTextColor="#5E2206"
-          secureTextEntry
-          style={styles.input}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          <LinearGradient
-            colors={["#FD691A", "#FFA160", "#FFD270"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.button}
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleRegister}
+            disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? "Loading..." : "Register"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={["#FD691A", "#FFA160", "#FFD270"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.button}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? "Loading..." : "Register"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.link}
-        >
-          <Text style={styles.linkText}>Already have an account?</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.link}
+          >
+            <Text style={styles.linkText}>Already have an account?</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </GradientBackground>
   );
 }
@@ -250,7 +261,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+  },
+  contentContainer: {
+    flexGrow: 1,
     justifyContent: "center",
+    paddingBottom: 80,
   },
   title: {
     fontSize: 36,
