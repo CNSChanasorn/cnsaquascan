@@ -2,7 +2,7 @@
 
 ## Overview
 
-AquaScan is a React Native Expo application for capturing, analyzing, and managing water quality or sample data in a streamlined mobile workflow. The app focuses on collecting field data, syncing it to the cloud, and presenting results in a clear, organized way. It solves the problem of fragmented data collection by providing a single mobile app for capture, review, and history tracking.
+AquaScan is a React Native Expo application for capturing sample data and calculating sweetness (sweetness) and quality (grade) in a streamlined mobile workflow. The app focuses on collecting field data, syncing it to the cloud, and presenting results in a clear, organized way. It solves the problem of fragmented data collection by providing a single mobile app for capture, review, and history tracking.
 
 Main features:
 
