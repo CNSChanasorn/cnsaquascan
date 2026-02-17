@@ -1,4 +1,4 @@
-# CNSA AquaScan
+# AquaScan
 
 ## Overview
 
