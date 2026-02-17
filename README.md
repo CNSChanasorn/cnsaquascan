@@ -1,50 +1,88 @@
-# Welcome to your Expo app 👋
+# CNSA AquaScan
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Overview
 
-## Get started
+AquaScan is a React Native Expo application for capturing, analyzing, and managing water quality or sample data in a streamlined mobile workflow. The app focuses on collecting field data, syncing it to the cloud, and presenting results in a clear, organized way. It solves the problem of fragmented data collection by providing a single mobile app for capture, review, and history tracking.
 
-1. Install dependencies
+Main features:
+
+- User authentication and profiles
+- Collection workflows for new samples
+- Analysis and results screens
+- History tracking for past collections
+- Cloud sync with Firebase services
+
+## Installation
+
+1. Clone the repository
+
+   ```bash
+   git clone <your-repo-url>
+   cd cnsaquascan
+   ```
+
+2. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+## Dependencies
+
+- Node.js (LTS recommended)
+- npm
+- Expo (no global install required when using `npx`)
+
+## Running the App
+
+1. Start the Expo dev server
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+2. Start the Expo dev server for Expo Go
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   ```bash
+   npx expo start --go
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+When to use Expo Go:
 
-## Get a fresh project
+- Use Expo Go for quick development and testing without a custom dev build.
+- Install Expo Go from the App Store or Google Play.
+- After running the command, scan the QR code with your device to open the app.
 
-When you're ready, run:
+If you use a custom dev build, run the standard `npx expo start` and open the app from the development build on your device.
+
+## Environment Setup
+
+Create a `.env` file in the project root with the following variables:
 
 ```bash
-npm run reset-project
+EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+What each variable is used for:
 
-## Learn more
+- `EXPO_PUBLIC_FIREBASE_API_KEY`: Authenticates requests to your Firebase project.
+- `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`: Firebase Auth domain for web-based flows.
+- `EXPO_PUBLIC_FIREBASE_PROJECT_ID`: Identifies your Firebase project.
+- `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`: Cloud Storage bucket name for uploads.
+- `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`: Firebase messaging sender ID.
+- `EXPO_PUBLIC_FIREBASE_APP_ID`: Firebase app identifier.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Android Setup
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+You must add a `google-services.json` file for Android builds.
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Download the file from the Firebase Console for the same project used in the `.env` file.
+- Place the file in the location expected by your setup:
+  - Expo managed workflow: project root
+  - Bare or prebuild workflow: `android/app`
+- Ensure the Firebase project matches the values in the `.env` file to avoid runtime configuration errors.
