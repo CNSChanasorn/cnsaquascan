@@ -83,7 +83,6 @@ export default function AnalysisScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const isFocused = useIsFocused();
 
-  // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
@@ -126,7 +125,6 @@ export default function AnalysisScreen() {
     }
   }, [isFocused]);
 
-  // 🔎 Filter logic (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
     const keyword = searchText.toLowerCase();
 
@@ -140,7 +138,6 @@ export default function AnalysisScreen() {
     );
   });
 
-  /* 🔮 Prediction Logic (SAFE) */
   const predictOrange = (size: number, weight: number) => {
     let grade: "Good" | "Medium" | "Bad" = "Bad";
     let sweetness = 4;
@@ -189,10 +186,8 @@ export default function AnalysisScreen() {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔝 Header */}
         <AppHeader />
 
-        {/* 🔍 Search */}
         <View style={styles.searchBox}>
           <TextInput
             placeholder="Search"
@@ -258,7 +253,6 @@ export default function AnalysisScreen() {
   );
 }
 
-/* 🎨 Styles (UNCHANGED) */
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 40 },
   searchBox: {

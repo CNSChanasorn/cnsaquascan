@@ -38,7 +38,6 @@ export default function CollectionScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
 
-  // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   const loadLocal = async () => {
@@ -92,7 +91,6 @@ export default function CollectionScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
-  // 🔎 Filtered data (ไม่กระทบ data เดิม)
   const filteredData = data.filter((item) => {
     const keyword = searchText.toLowerCase();
 
@@ -110,10 +108,8 @@ export default function CollectionScreen({ navigation }: any) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔝 Header */}
         <AppHeader />
 
-        {/* 🔍 Search */}
         <View style={styles.searchBox}>
           <TextInput
             placeholder="Search"
@@ -125,7 +121,6 @@ export default function CollectionScreen({ navigation }: any) {
           <MaterialIcons name="search" size={22} color="#FD8342" />
         </View>
 
-        {/* 📦 List */}
         {loading ? (
           <ActivityIndicator size="large" color="#FD8342" />
         ) : (
@@ -152,7 +147,6 @@ export default function CollectionScreen({ navigation }: any) {
           </ScrollView>
         )}
 
-        {/* ➕ Floating Button */}
         <TouchableOpacity
           style={styles.fab}
           activeOpacity={0.85}
@@ -165,7 +159,6 @@ export default function CollectionScreen({ navigation }: any) {
   );
 }
 
-/* 🧩 Card Component */
 function DataCard({
   item,
   navigation,
@@ -203,7 +196,6 @@ function DataCard({
 
   return (
     <View style={styles.card}>
-      {/* 🔝 Icons มุมขวาบน */}
       <View style={styles.cardActions}>
         <TouchableOpacity
           onPress={() => navigation.navigate("EditCollection", { item })}
@@ -240,7 +232,6 @@ function DataCard({
   );
 }
 
-/* 🎨 Styles */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

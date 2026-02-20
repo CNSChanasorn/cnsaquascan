@@ -17,7 +17,6 @@ import GradientBackground from "../../components/GradientBackground";
 import { auth } from "../../firebase/firebase"; // ตรวจสอบ path ให้ถูกต้อง
 import { userRepository } from "../../firebase/repositories/userRepository";
 
-// Define UserData type
 type UserData = {
   fullName: string;
   username: string;
@@ -46,7 +45,6 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // 🔥 Fetch User Data Logic (เหมือนใน ProfileScreen)
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -66,7 +64,6 @@ export default function HomeScreen() {
     }, [loadUser]),
   );
 
-  // Mock variety data
   const varieties = [
     {
       id: 1,
@@ -108,17 +105,14 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* User Welcome Card */}
           <LinearGradient
             colors={["#FB9D4B", "#FD691A"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.analysisCard}
           >
-            {/* 1. Welcome Text อยู่ด้านบน */}
             <Text style={styles.welcomeText}>Welcome</Text>
 
-            {/* 2. รูป Profile จาก User Data */}
             {userData?.avatar ? (
               <Image source={{ uri: avatarUri }} style={styles.userImage} />
             ) : (
@@ -127,7 +121,6 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* 3. ชื่อ User อยู่ด้านล่างรูป */}
             <View style={styles.userInfo}>
               <Text style={styles.userName}>
                 {userData?.username || "Guest"}
@@ -135,7 +128,6 @@ export default function HomeScreen() {
             </View>
           </LinearGradient>
 
-          {/* Features Section */}
           <View style={styles.featuresSection}>
             <Text
               style={[
@@ -218,7 +210,6 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Variety Section */}
           <View style={styles.varietySection}>
             <Text
               style={[

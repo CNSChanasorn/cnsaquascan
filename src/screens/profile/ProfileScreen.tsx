@@ -37,7 +37,6 @@ export default function ProfileScreen() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkInput, setLinkInput] = useState("");
 
-  /* 🔥 Load current login user */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -83,7 +82,6 @@ export default function ProfileScreen() {
     return unsub;
   }, []);
 
-  /* 📸 Pick image from gallery */
   const pickImage = async () => {
     if (!uid) return;
 
@@ -103,12 +101,10 @@ export default function ProfileScreen() {
       const imageUri = result.assets[0].uri;
 
       try {
-        // Delete old avatar if exists
         if (userData?.avatar) {
           await deleteImageLocally(userData.avatar);
         }
 
-        // Save new avatar locally
         const localPath = await saveImageLocally(imageUri, `avatar_${uid}.jpg`);
 
         await userRepository.updateAvatar(uid, localPath);
@@ -122,7 +118,6 @@ export default function ProfileScreen() {
     }
   };
 
-  /* 🔗 Set image by URL */
   const openImageLink = () => {
     if (!uid) return;
     setLinkInput(userData?.avatar || "");
@@ -274,7 +269,6 @@ export default function ProfileScreen() {
   );
 }
 
-/* 🎨 Styles */
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1, paddingTop: 40, paddingHorizontal: 20 },

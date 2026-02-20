@@ -1,21 +1,13 @@
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 
 export default function WelcomeScreen({ navigation }: any) {
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* Felipa */}
         <Text style={styles.subtitle}>Welcome To</Text>
 
-        {/* ✅ Cormorant Unicase */}
         <Text style={styles.title}>AquaScan</Text>
 
         <Image

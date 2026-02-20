@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 20,
-    color: "#922D24", // ให้ธีมตรงกัน
+    color: "#922D24",
     textAlign: "center",
   },
   input: {

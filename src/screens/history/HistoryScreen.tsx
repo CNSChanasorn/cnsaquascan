@@ -36,7 +36,6 @@ type HistoryItem = {
 
 const DEFAULT_IMAGE = "https://via.placeholder.com/150";
 
-/* 🔁 แปลงค่าเกรด */
 const gradeText = (grade: HistoryItem["grade"]) => {
   const g = grade?.toLowerCase?.() || "";
   if (g === "good") return "Good";
@@ -51,7 +50,6 @@ export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const isFocused = useIsFocused();
 
-  // 🔍 Search state
   const [searchText, setSearchText] = useState("");
 
   const loadLocal = async () => {
@@ -106,7 +104,6 @@ export default function HistoryScreen() {
     setRefreshing(false);
   };
 
-  // 🔎 Filter logic
   const filteredData = data.filter((item) => {
     const keyword = searchText.toLowerCase();
 
@@ -168,7 +165,6 @@ export default function HistoryScreen() {
   );
 }
 
-/* 🧩 Card */
 function HistoryCard({
   item,
   onDelete,
@@ -283,7 +279,6 @@ function HistoryCard({
   );
 }
 
-/* 🎨 Styles (ไม่แตะ) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

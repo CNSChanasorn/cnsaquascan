@@ -3,7 +3,6 @@ import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
 import WelcomeScreen from "../screens/auth/WelcomeScreen";
 
-/* ➕ import หน้า Collection */
 import DataCollectionScreen from "../screens/collection/CollectionScreen";
 
 const Stack = createNativeStackNavigator();
@@ -25,7 +24,6 @@ export default function AuthNavigator({ setHasEnteredApp }: Props) {
 
       <Stack.Screen name="Register" component={RegisterScreen} />
 
-      {/* เก็บไว้ได้ ไม่พัง */}
       <Stack.Screen name="Collection" component={DataCollectionScreen} />
     </Stack.Navigator>
   );

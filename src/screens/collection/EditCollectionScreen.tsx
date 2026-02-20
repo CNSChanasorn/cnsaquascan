@@ -18,7 +18,7 @@ import { orangeRepository } from "../../firebase/repositories/orangeRepository";
 import { saveImageLocally } from "../../firebase/storage";
 
 export default function EditCollectionScreen({ route, navigation }: any) {
-  const { item } = route.params; // 👈 รับข้อมูลจากการ์ด
+  const { item } = route.params;
 
   const [id, setId] = useState(String(item.id ?? ""));
   const [variety, setVariety] = useState(String(item.name ?? ""));
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 20,
-    color: "#922D24", // ให้เข้าธีมเดียวกับหน้าอื่น
+    color: "#922D24",
     textAlign: "center",
   },
   input: {

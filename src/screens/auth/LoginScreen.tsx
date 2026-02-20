@@ -14,16 +14,11 @@ import GradientBackground from "../../components/GradientBackground";
 import { auth } from "../../firebase/firebase";
 import { userRepository } from "../../firebase/repositories/userRepository";
 
-export default function LoginScreen({
-  navigation,
-  setHasEnteredApp, // ✅ เพิ่มเข้ามา
-}: any) {
-  /* 🔐 State สำหรับ Login */
+export default function LoginScreen({ navigation, setHasEnteredApp }: any) {
   const [username, setUsername] = useState(""); // ใช้เป็น email
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ✅ Firebase Login */
   const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert("Error", "Please enter email and password");
@@ -55,7 +50,6 @@ export default function LoginScreen({
         }
       }
 
-      // ✅ บอก App ว่าเข้าแอปแล้ว → Navbar จะโผล่
       setHasEnteredApp(true);
     } catch (error: any) {
       let message = "Login failed";
@@ -77,7 +71,6 @@ export default function LoginScreen({
   return (
     <GradientBackground>
       <View style={styles.container}>
-        {/* 🔥 Tilt Neon */}
         <Text style={styles.title}>SIGN IN</Text>
 
         <TextInput
@@ -98,7 +91,6 @@ export default function LoginScreen({
           onChangeText={setPassword}
         />
 
-        {/* ✅ Login */}
         <TouchableOpacity activeOpacity={0.85} onPress={handleLogin}>
           <LinearGradient
             colors={["#FD691A", "#FFA160", "#FFD270"]}
@@ -112,7 +104,6 @@ export default function LoginScreen({
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Create account */}
         <TouchableOpacity
           onPress={() => navigation.navigate("Register")}
           style={styles.link}
@@ -124,7 +115,6 @@ export default function LoginScreen({
   );
 }
 
-/* 🎨 Styles (ไม่แตะเลย) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

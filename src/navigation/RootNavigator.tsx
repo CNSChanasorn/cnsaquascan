@@ -14,11 +14,9 @@ export default function RootNavigator() {
     return unsub;
   }, []);
 
-  // 🔑 ถ้ายังไม่ login → Auth
   if (!isLogin) {
     return <AuthNavigator setHasEnteredApp={setIsLogin} />;
   }
 
-  // 🔑 login แล้ว → Navbar (Tab)
   return <MainTabNavigator />;
 }

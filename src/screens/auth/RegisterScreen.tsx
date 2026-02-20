@@ -9,14 +9,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 import GradientBackground from "../../components/GradientBackground";
 
-// 📸 Image Picker
 import * as ImagePicker from "expo-image-picker";
 
-// 🔥 Firebase
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { userRepository } from "../../firebase/repositories/userRepository";
@@ -32,7 +30,6 @@ export default function RegisterScreen({ navigation }: any) {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  /* 📸 เลือกรูป */
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -82,7 +79,6 @@ export default function RegisterScreen({ navigation }: any) {
         return;
       }
 
-      // 🔐 Create Auth user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         normalizedEmail,
@@ -91,7 +87,6 @@ export default function RegisterScreen({ navigation }: any) {
 
       const user = userCredential.user;
 
-      // 🧾 Save profile to SQLite (avatar saved locally)
       let avatarPath = "";
       if (avatar) {
         avatarPath = await saveImageLocally(avatar, `avatar_${user.uid}.jpg`);
@@ -115,7 +110,6 @@ export default function RegisterScreen({ navigation }: any) {
         throw dbError;
       }
 
-      // ❗ Logout หลังสมัครเสร็จ
       await signOut(auth);
 
       Alert.alert(
@@ -169,7 +163,6 @@ export default function RegisterScreen({ navigation }: any) {
         >
           <Text style={styles.title}>REGISTER</Text>
 
-          {/* 🖼 Avatar */}
           <TouchableOpacity style={styles.avatarBox} onPress={pickImage}>
             <Image
               source={{
@@ -256,7 +249,6 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-/* 🎨 Styles (โครงสร้างเดิม + เพิ่ม avatar) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
