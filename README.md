@@ -17,7 +17,7 @@ Main features:
 1. Clone the repository
 
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/CNSChanasorn/cnsaquascan.git
    cd cnsaquascan
    ```
 
